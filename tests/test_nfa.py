@@ -77,7 +77,7 @@ def test_ab():
     assert not nfa.test_string("b")
 
 
-def test_a_star():
+def test_a_plus():
     nfa = NFA(
         {"0", "1"},
         set(ascii_lowercase),
@@ -87,6 +87,23 @@ def test_a_star():
     )
 
     assert not nfa.test_string("")
+    assert nfa.test_string("a")
+    assert not nfa.test_string("b")
+    assert nfa.test_string("aa")
+    assert nfa.test_string("aaaaaaa")
+    assert not nfa.test_string("aab")
+
+
+def test_a_star():
+    nfa = NFA(
+        {"0", "1"},
+        set(ascii_lowercase),
+        lambda q, c: {"1"} if q in {"0", "1"} and c in {"a", ""} else set(),
+        "0",
+        {"1"},
+    )
+
+    assert nfa.test_string("")
     assert nfa.test_string("a")
     assert not nfa.test_string("b")
     assert nfa.test_string("aa")
