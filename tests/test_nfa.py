@@ -3,7 +3,7 @@ from string import ascii_lowercase
 from nfa import NFA
 
 
-def test_empty_regex():
+def test_empty_nfa():
     nfa = NFA({"0", "1"}, set(ascii_lowercase), lambda _q, _c: set(), "0", {"1"})
     assert not nfa.test_string("")
     assert not nfa.test_string("a")
