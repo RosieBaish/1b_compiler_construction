@@ -75,21 +75,12 @@ class DFA:
             return "{" + ",".join(elements) + "}"
 
         def string_to_set(s: str) -> set[str]:
+            if s == "{}":
+                # This was otherwise returning the set containing the empty string which is wrong
+                return set()
             assert s[0] == "{", s
             assert s[-1] == "}", s
             return set(s[1:-1].split(","))
-
-        def powerset_str(s: set[str]) -> set[str]:
-            num_bits = len(s)
-            ps: set[str] = set()
-            elements = sorted(list(s))
-            for i in range(2**num_bits):
-                set_i: set[str] = set()
-                for j in range(len(elements)):
-                    if (2**j) & i:
-                        set_i.add(elements[j])
-                ps.add(set_to_string(set_i))
-            return ps
 
         def epsilon_closure(
             s: set[str], delta: Callable[[str, str], set[str]]
@@ -105,18 +96,28 @@ class DFA:
                         stack.append(u)
             return result
 
-        Q_prime = powerset_str(nfa.Q)
-
         def delta_prime(S: str, a: str) -> str:
             output_set = set()
             for q in string_to_set(S):
                 output_set |= nfa.delta(q, a)
             return set_to_string(epsilon_closure(output_set, nfa.delta))
 
-        print(nfa.q_0)
-        print(epsilon_closure({nfa.q_0}, nfa.delta))
         q_0_prime = set_to_string(epsilon_closure({nfa.q_0}, nfa.delta))
-        print(q_0_prime)
+
+        # It's weird to compute the states after we've got the transition function
+        # and start state, but because states are just strings it works.
+        # We're just computing the reachable sets here, rather than the full powerset
+        Q_prime = {q_0_prime}
+        work_list = [q_0_prime]
+        while len(work_list):
+            q = work_list[0]
+            for c in nfa.Sigma:
+                output = delta_prime(q, c)
+                if output not in Q_prime:
+                    Q_prime.add(output)
+                    if output not in work_list:
+                        work_list.append(output)
+            work_list = work_list[1:]
 
         F_prime: set[str] = set()
         for S in Q_prime:
