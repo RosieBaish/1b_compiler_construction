@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from string import ascii_lowercase
+from typing import Optional
 
 from nfa import NFA
 
@@ -12,12 +13,14 @@ class DFA:
         delta: Callable[[str, str], str],
         q_0: str,
         F: set[str],
+        tags: dict[str, str] = {},  # Optional mapping from states to tags
     ):
         self.Q = Q
         self.Sigma = Sigma
         self.delta = delta
         self.q_0 = q_0
         self.F = F
+        self.tags = tags
 
         # Check that q_0 and everything in F are valid states.
         assert self.q_0 in self.Q, (self.q_0, self.Q)
@@ -28,15 +31,36 @@ class DFA:
         for c in self.Sigma:
             assert len(c) == 1, c
 
+        # Tags is either empty, or contains every state as a key
+        if len(self.tags) > 0:
+            assert len(self.Q) == len(self.tags)
+            for q in self.Q:
+                assert q in self.tags
+
+        self.num_chars_accepted = 0
+        self.last_accept_state: Optional[str] = None
+        self.last_accept_tag: Optional[str] = None
+
     def __repr__(self) -> str:
         return f"DFA <{self.Q}, {self.Sigma}, delta, '{self.q_0}', {self.F}>"
 
     def test_string(self, string: str) -> bool:
         q = self.q_0
+        num_chars_consumed = 0  # Running total
+        self.num_chars_accepted = 0  # Number of chars accepted
+        self.last_accept_state = q if q in self.F else None
+        self.last_accept_tag = self.tags[q] if len(self.tags) and q in self.F else None
 
         for c in string:
             assert c in self.Sigma, (c, self.Sigma)
             q = self.delta(q, c)
+
+            num_chars_consumed += 1
+            if q in self.F:
+                self.num_chars_accepted = num_chars_consumed
+                self.last_accept_state = q
+                if len(self.tags):
+                    self.last_accept_tag = self.tags[q]
 
         # We've parsed the whole string, so check if we're in an accept state
         return q in self.F
