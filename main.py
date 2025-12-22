@@ -1,6 +1,7 @@
 import argparse
 
 import dfa
+import lexer
 import nfa
 import regex
 
@@ -14,6 +15,7 @@ def main() -> None:
     parser.add_argument("--nfa", action="store_true")
     parser.add_argument("--regex", action="store_true")
     parser.add_argument("--dfa", action="store_true")
+    parser.add_argument("--lexer", action="store_true")
 
     args = parser.parse_args()
 
@@ -23,6 +25,8 @@ def main() -> None:
         regex.main()
     if args.dfa:
         dfa.main()
+    if args.lexer:
+        lexer.main()
 
 
 if __name__ == "__main__":
