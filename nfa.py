@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from string import ascii_lowercase
 
+from typing import Optional
+
 import matplotlib.pyplot as plt
 import networkx as nx  # type: ignore
 
@@ -23,12 +25,18 @@ class NFA:
         delta: Callable[[str, str], set[str]],
         q_0: str,
         F: set[str],
+        tags: dict[str, str] = {},  # Optional mapping from states to tags
+        state_rankings: list[
+            str
+        ] = [],  # Priority order of states for when we're in multiple accept states at once
     ):
         self.Q = Q
         self.Sigma = Sigma
         self.delta = delta
         self.q_0 = q_0
         self.F = F
+        self.tags = tags
+        self.state_rankings = state_rankings
 
         # Check that q_0 and everything in F are valid states.
         assert self.q_0 in self.Q, (self.q_0, self.Q)
@@ -38,6 +46,17 @@ class NFA:
         # Check that everything in Sigma is a character not a string
         for c in self.Sigma:
             assert len(c) == 1, c
+
+        # Tags and state_rankings are either both empty, or contains every state
+        if len(self.tags) > 0 or len(self.state_rankings) > 0:
+            assert len(self.Q) == len(self.tags) == len(self.state_rankings)
+            for q in self.Q:
+                assert q in self.tags
+                assert q in self.state_rankings
+
+        self.num_chars_accepted = 0
+        self.last_accept_state: Optional[str] = None
+        self.last_accept_tag: Optional[str] = None
 
     def epsilon_close(self, states: set[str]) -> set[str]:
         closure: set[str] = states.copy()  # Everything can epsilon transition to itself
@@ -56,6 +75,10 @@ class NFA:
         current_states = self.epsilon_close(set(self.q_0))
         next_states: set[str]
 
+        num_chars_consumed = 0  # Running total
+        num_chars_accepted = 0
+        last_accept_states: set[str] = current_states.intersection(self.F)
+
         for c in string:
             assert c in self.Sigma, (c, self.Sigma)
 
@@ -63,14 +86,32 @@ class NFA:
             for q in current_states:
                 next_states |= self.delta(q, c)
             next_states = self.epsilon_close(next_states)
+            num_chars_consumed += 1
+
+            accepted_qs = next_states.intersection(self.F)
+            if len(accepted_qs):
+                num_chars_accepted = num_chars_consumed
+                last_accept_states = accepted_qs
 
             current_states = next_states
 
         # We've parsed the whole string, so check if we're in an accept state
+        in_accept = False
         for q in current_states:
             if q in self.F:
-                return True
-        return False
+                in_accept = True
+
+        self.num_chars_accepted = num_chars_accepted
+        if len(self.tags) and len(last_accept_states):
+            sorted_accept_states = sorted(
+                list(last_accept_states), key=lambda x: self.state_rankings.index(x)
+            )
+            self.last_accept_state = sorted_accept_states[0]
+            self.last_accept_tag = self.tags[self.last_accept_state]
+        else:
+            self.last_accept_state = None
+            self.last_accept_tag = None
+        return in_accept
 
     @staticmethod
     def from_regex(regex: Regex, Sigma: set[str]) -> "NFA":
