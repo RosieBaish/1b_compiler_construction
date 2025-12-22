@@ -329,6 +329,70 @@ class NFA:
 
         plt.show()
 
+    @staticmethod
+    def merge_nfas(nfas: list["NFA"]) -> "NFA":
+        """Merge together a bunch of (tagged) NFAs to create a single one which runs them in parallel.
+        Prioritises them (e.g. for tag emitting) in the order they're given"""
+
+        # This is just a general case of the OrRegex above, but with tags
+        # However we don't want a global accept state because they all have different tags
+
+        def get_prefix(state: str) -> tuple[str, int]:
+            """Given a state of the form "r{i}_{foo}" return (foo, i)"""
+            # I can't use regexes to solve this because I'm building a regex engine
+            assert state[0] == "r"
+            for i in range(1, len(state)):
+                if state[i] == "_":
+                    return (state[i + 1 :], int(state[1:i]))
+                else:
+                    assert state[i].isdigit(), state[i]
+            assert False, (state, "Expected an underscore")  # pragma: no cover
+
+        def add_prefix(state: str, number: int) -> str:
+            return f"r{number}_{state}"
+
+        if len(nfas) == 0:
+            return NFA({"0"}, set(), lambda _q, _c: set(), "0", set())
+
+        Sigma = nfas[0].Sigma
+        for nfa in nfas:
+            assert len(nfa.F) > 0
+            assert nfa.Sigma == Sigma
+
+        Q = {"0"}
+        doing_tags = any([len(nfa.tags) > 0 for nfa in nfas])
+        if doing_tags:
+            tags = {"0": "0"}
+            state_rankings = ["0"]
+        else:
+            tags = {}
+            state_rankings = []
+        F_prime: set[str] = set()
+
+        for i, nfa in enumerate(nfas):
+            for state in nfa.Q:
+                state_prime = add_prefix(state, i)
+                Q.add(state_prime)
+                if doing_tags:
+                    tags[state_prime] = nfa.tags[state]
+            F_prime |= {add_prefix(state, i) for state in nfa.F}
+            if doing_tags:
+                state_rankings.extend(
+                    [add_prefix(state, i) for state in nfa.state_rankings]
+                )
+
+        def transition_function(q: str, c: str) -> set[str]:
+            if q == "0" and c == "":
+                return {f"r{i}_{nfa.q_0}" for (i, nfa) in enumerate(nfas)}
+            if q.startswith("r"):
+                q_prime, i = get_prefix(q)
+                response_prime = nfas[i].delta(q_prime, c)
+                response = {f"r{i}_{q}" for q in response_prime}
+                return response
+            return set()
+
+        return NFA(Q, Sigma, transition_function, "0", F_prime, tags, state_rankings)
+
 
 def main() -> None:
     def test_and_print(nfa: NFA, string: str) -> None:
