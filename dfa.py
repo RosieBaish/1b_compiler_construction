@@ -124,7 +124,19 @@ class DFA:
             if not string_to_set(S).isdisjoint(nfa.F):
                 F_prime.add(S)
 
-        return DFA(Q_prime, nfa.Sigma, delta_prime, q_0_prime, F_prime)
+        tags_prime: dict[str, str] = {}
+        if len(nfa.tags):
+            for S in Q_prime:
+                S_list = sorted(
+                    [s for s in list(string_to_set(S)) if s in nfa.F],
+                    key=lambda x: nfa.state_rankings.index(x),
+                )
+                if S_list == []:
+                    tags_prime[S] = "set()"
+                else:
+                    tags_prime[S] = nfa.tags[S_list[0]]
+
+        return DFA(Q_prime, nfa.Sigma, delta_prime, q_0_prime, F_prime, tags_prime)
 
 
 def main() -> None:
