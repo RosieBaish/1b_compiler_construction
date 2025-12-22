@@ -239,3 +239,20 @@ def test_notes():
     assert not dfa.test_string("abbb")
     assert not dfa.test_string("ab")
     assert not dfa.test_string("bb")
+
+
+def test_non_int_state_names():
+    dfa = DFA.fromNFA(
+        NFA(
+            {"foo", "bar"},
+            {"a", "b"},
+            lambda q, c: {"bar"} if q == "foo" and c == "a" else set(),
+            "foo",
+            {"bar"},
+        )
+    )
+
+    assert not dfa.test_string("")
+    assert dfa.test_string("a")
+    assert not dfa.test_string("b")
+    assert not dfa.test_string("aa")

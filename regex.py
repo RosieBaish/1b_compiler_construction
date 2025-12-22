@@ -1,6 +1,10 @@
+import abc
+
+
 class Regex:
-    def test_string(self, string: str) -> bool:
-        assert False, "Need to override"
+    @abc.abstractmethod
+    def test_string(self, string: str) -> bool:  #
+        """Returns True iff the string matches the regex"""
 
     def __repr__(self) -> str:
         return str(self)
