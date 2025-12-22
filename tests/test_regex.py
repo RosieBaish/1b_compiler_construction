@@ -23,6 +23,37 @@ def test_a():
     assert not regex.test_string("aa")
 
 
+def test_range_a():
+    regex = Regex.parse("[a]")
+
+    assert not regex.test_string("")
+    assert regex.test_string("a")
+    assert not regex.test_string("b")
+    assert not regex.test_string("d")
+    assert not regex.test_string("aa")
+
+
+def test_range_ab():
+    regex = Regex.parse("[ab]")
+
+    assert not regex.test_string("")
+    assert regex.test_string("a")
+    assert regex.test_string("b")
+    assert not regex.test_string("d")
+    assert not regex.test_string("aa")
+
+
+def test_range_abc():
+    regex = Regex.parse("[a-c]")
+
+    assert not regex.test_string("")
+    assert regex.test_string("a")
+    assert regex.test_string("b")
+    assert regex.test_string("c")
+    assert not regex.test_string("d")
+    assert not regex.test_string("aa")
+
+
 def test_a_or_b():
     regex = Regex.parse("(a+b)")
 

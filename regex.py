@@ -1,3 +1,5 @@
+import util
+
 import abc
 
 
@@ -79,6 +81,13 @@ class Regex:
                 continuation = regex_string[close_bracket_position + 2 :]
 
                 first_part = StarRegex(Regex.parse(bracketed_string))
+        elif regex_string[0] == "[":
+            # Range Regex
+            close_bracket_position = regex_string.find("]")
+            first_part = RangeRegex(
+                util.range_string_to_set(regex_string[: close_bracket_position + 1])
+            )
+            continuation = regex_string[close_bracket_position + 1 :]
         else:
             first_part = Regex.parse(regex_string[0])
             continuation = regex_string[1:]
@@ -115,6 +124,19 @@ class CharacterRegex(Regex):
 
     def test_string(self, string: str) -> bool:
         return string == self.character
+
+
+class RangeRegex(Regex):
+    def __init__(self, characters: set[str]):
+        self.characters: set[str] = characters
+        for character in self.characters:
+            assert len(character) == 1, character
+
+    def __str__(self) -> str:
+        return f"RangeRegex({self.characters})"
+
+    def test_string(self, string: str) -> bool:
+        return string in self.characters
 
 
 class OrRegex(Regex):

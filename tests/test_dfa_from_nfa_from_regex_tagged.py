@@ -47,6 +47,100 @@ def test_a():
     assert dfa.last_accept_tag == "Accept"
 
 
+def test_range_a():
+    dfa = DFA.fromNFA(
+        NFA.from_regex(Regex.parse("[a]"), {"a", "b", "c", "d"}, accept_tag="Accept")
+    )
+
+    dfa.test_string("")
+    assert dfa.num_chars_accepted == 0
+    assert dfa.last_accept_tag is None
+
+    dfa.test_string("a")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("b")
+    assert dfa.num_chars_accepted == 0
+    assert dfa.last_accept_tag is None
+
+    dfa.test_string("aa")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+
+def test_range_ab():
+    dfa = DFA.fromNFA(
+        NFA.from_regex(Regex.parse("[ab]"), {"a", "b", "c", "d"}, accept_tag="Accept")
+    )
+
+    dfa.test_string("")
+    assert dfa.num_chars_accepted == 0
+    assert dfa.last_accept_tag is None
+
+    dfa.test_string("a")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("b")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("d")
+    assert dfa.num_chars_accepted == 0
+    assert dfa.last_accept_tag is None
+
+    dfa.test_string("aa")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("ab")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("ba")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+
+def test_range_abc():
+    dfa = DFA.fromNFA(
+        NFA.from_regex(Regex.parse("[a-c]"), {"a", "b", "c", "d"}, accept_tag="Accept")
+    )
+
+    dfa.test_string("")
+    assert dfa.num_chars_accepted == 0
+    assert dfa.last_accept_tag is None
+
+    dfa.test_string("a")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("b")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("c")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("d")
+    assert dfa.num_chars_accepted == 0
+    assert dfa.last_accept_tag is None
+
+    dfa.test_string("aa")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("ab")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+    dfa.test_string("ba")
+    assert dfa.num_chars_accepted == 1
+    assert dfa.last_accept_tag == "Accept"
+
+
 def test_a_or_b():
     dfa = DFA.fromNFA(
         NFA.from_regex(Regex.parse("(a+b)"), {"a", "b"}, accept_tag="Accept")

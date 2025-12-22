@@ -12,6 +12,7 @@ from regex import (
     EmptyRegex,
     EpsilonRegex,
     CharacterRegex,
+    RangeRegex,
     OrRegex,
     ConcatenationRegex,
     StarRegex,
@@ -45,6 +46,7 @@ class NFA:
             assert q in self.Q, (q, self.Q)
 
         # Check that everything in Sigma is a character not a string
+        assert isinstance(Sigma, set)
         for c in self.Sigma:
             assert len(c) == 1, c
 
@@ -138,6 +140,14 @@ class NFA:
                 {"0", "1"},
                 Sigma,
                 lambda q, c: {"1"} if c == regex.character and q == "0" else set(),
+                "0",
+                {"1"},
+            )
+        elif isinstance(regex, RangeRegex):
+            created_nfa = NFA(
+                {"0", "1"},
+                Sigma,
+                lambda q, c: {"1"} if c in regex.characters and q == "0" else set(),
                 "0",
                 {"1"},
             )
