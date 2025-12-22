@@ -1,6 +1,9 @@
 from collections.abc import Callable
 from string import ascii_lowercase
 
+import matplotlib.pyplot as plt
+import networkx as nx  # type: ignore
+
 from regex import (
     Regex,
     EmptyRegex,
@@ -181,6 +184,121 @@ class NFA:
             assert isinstance(regex, Regex), regex
             assert False, "Regex is an abstract base class"
 
+    def get_transition_function_as_lookup(self) -> dict[str, dict[str, set[str]]]:
+        delta_prime: dict[str, dict[str, set[str]]] = {}
+        for q in self.Q:
+            delta_prime[q] = {}
+            for c in self.Sigma | {""}:
+                delta_prime[q][c] = self.delta(q, c)
+        return delta_prime
+
+    @staticmethod
+    def group_transition_row(
+        transition_row: dict[str, set[str]],
+    ) -> list[tuple[set[str], str, set[str]]]:
+        """transition_row is one row of the transition function, i.e. all the outbound edges for
+        a particular state.
+        Group it so that it is something like a -> {"1"}, [b-z] -> set()
+        Output is a list of (set of chars, stringified version of that set, set of states they go to)
+        """
+
+        def group_char_set(input_set: set[str]) -> str:
+            assert len(input_set)
+            for char in input_set:
+                assert len(char) in {0, 1}, char
+            # Work with ascii/unicode values not characters for simplicity
+            ascii_vals = sorted([ord(c) if c != "" else -1 for c in input_set])
+
+            def my_chr(c: int) -> str:
+                """Identical to chr but uses -1 for epsilon"""
+                if c == -1:
+                    return "ε"
+                else:
+                    return chr(c)
+
+            if len(ascii_vals) == 1:
+                return my_chr(ascii_vals[0])
+            groups: list[str] = []
+            current_group: list[int] = [ascii_vals[0]]
+
+            def add_current_group(current_group: list[int]) -> None:
+                if len(current_group) < 3:
+                    groups.extend([my_chr(c) for c in current_group])
+                else:
+                    groups.append(
+                        f"{my_chr(current_group[0])}-{my_chr(current_group[-1])}"
+                    )
+
+            for c in ascii_vals[1:]:
+                if c - current_group[-1] == 1:
+                    # Still contiguous
+                    current_group.append(c)
+                else:
+                    add_current_group(current_group)
+                    current_group = [c]
+            add_current_group(current_group)
+
+            return ",".join(groups)
+
+        grouped_rows: dict[frozenset[str], set[str]] = {}
+        # Dict from (output set) -> {set of chars that go to that output set}
+        # I.e. reversed from transition_row
+        unfrozen_sets: dict[frozenset[str], set[str]] = {}
+        # Mapping from frozensets back to the originals
+        for c, next_set in transition_row.items():
+            frozen_next_set = frozenset(next_set)
+            if frozen_next_set in grouped_rows:
+                grouped_rows[frozen_next_set] |= {c}
+            else:
+                grouped_rows[frozen_next_set] = {c}
+                unfrozen_sets[frozen_next_set] = next_set
+
+        output: list[tuple[set[str], str, set[str]]] = []
+        for frozen_next_set, chars in grouped_rows.items():
+            assert isinstance(frozen_next_set, frozenset)
+            next_set = unfrozen_sets[frozen_next_set]
+            output.append((chars, group_char_set(chars), next_set))
+        return output
+
+    def plot(self) -> None:  # pragma: no cover
+        G = nx.DiGraph()
+
+        Q_list = sorted(list(self.Q))
+        G.add_nodes_from(Q_list)
+
+        edges: list[tuple[str, str]] = []
+        edge_labels: dict[tuple[str, str], str] = {}
+
+        delta_prime = self.get_transition_function_as_lookup()
+
+        for q, transition_row in delta_prime.items():
+            grouped_transition_row = NFA.group_transition_row(transition_row)
+            for _, char_string, states in grouped_transition_row:
+                for state in states:
+                    edges.append((q, state))
+                    edge_labels[(q, state)] = char_string
+
+        G.add_edges_from(edges)
+
+        pos = nx.spring_layout(G)
+
+        nx.draw_networkx(
+            G,
+            pos=pos,
+            node_color=["pink" if q in self.F else "blue" for q in Q_list],
+            edge_color="black",
+            connectionstyle="arc3,rad=0.2",
+        )
+
+        nx.draw_networkx_edge_labels(
+            G,
+            pos=pos,
+            edge_labels=edge_labels,
+            connectionstyle="arc3,rad=0.2",
+        )
+
+        plt.show()
+
 
 def main() -> None:
     def test_and_print(nfa: NFA, string: str) -> None:
@@ -193,11 +311,11 @@ def main() -> None:
             return {"2"}
         if q == "2" and c == "c":
             return {"3"}
-        return {"Error"}
+        return set()
 
     nfa = NFA(
-        {"0", "1", "2", "3", "Error"},
-        set(ascii_lowercase),
+        {"0", "1", "2", "3"},
+        set(ascii_lowercase[:6]),
         transition_function,
         "0",
         {"3"},
@@ -207,3 +325,5 @@ def main() -> None:
     test_and_print(nfa, "def")
     test_and_print(nfa, "abd")
     test_and_print(nfa, "aaa")
+
+    nfa.plot()

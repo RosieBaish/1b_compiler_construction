@@ -224,3 +224,93 @@ def test_notes():
     assert not nfa.test_string("abbb")
     assert not nfa.test_string("ab")
     assert not nfa.test_string("bb")
+
+
+def test_transition_function_as_lookup_a():
+    Q = ["0", "1"]
+    Sigma = ["a", "b"]
+    nfa = NFA(
+        set(Q),
+        set(Sigma),
+        lambda q, c: {"1"} if q == "0" and c == "a" else set(),
+        Q[0],
+        {Q[-1]},
+    )
+
+    delta = nfa.get_transition_function_as_lookup()
+    assert sorted(list(delta.keys())) == Q
+    assert sorted(list(delta[Q[0]].keys())) == [""] + Sigma
+
+    assert delta["0"][""] == set()
+    assert delta["0"]["a"] == {"1"}
+    assert delta["0"]["b"] == set()
+
+    assert delta["1"][""] == set()
+    assert delta["1"]["a"] == set()
+    assert delta["1"]["b"] == set()
+
+
+def test_transition_function_as_lookup_a_or_b():
+    Q = ["0", "1"]
+    Sigma = ["a", "b", "c"]
+    nfa = NFA(
+        set(Q),
+        set(Sigma),
+        lambda q, c: {"1"} if q == "0" and c in {"a", "b"} else set(),
+        Q[0],
+        {Q[-1]},
+    )
+
+    delta = nfa.get_transition_function_as_lookup()
+    assert sorted(list(delta.keys())) == Q
+    assert sorted(list(delta[Q[0]].keys())) == [""] + Sigma
+
+    assert delta["0"][""] == set()
+    assert delta["0"]["a"] == {"1"}
+    assert delta["0"]["b"] == {"1"}
+    assert delta["0"]["c"] == set()
+
+    assert delta["1"][""] == set()
+    assert delta["1"]["a"] == set()
+    assert delta["1"]["b"] == set()
+    assert delta["1"]["c"] == set()
+
+
+def test_group_transition_row():
+    actual_output = NFA.group_transition_row(
+        {
+            "a": {"0", "1"},
+            "b": {"0", "1"},
+            "c": {"0", "1"},
+            "d": {"0", "1"},
+            "0": {"0", "1"},
+            "1": {"0", "1"},
+            "2": {"0", "1"},
+            "5": {"0", "1"},
+            "4": {"0", "1"},
+            "": {"0", "1"},
+            "q": {"1"},
+            "x": {"0"},
+            "y": {"0"},
+            "z": {"0"},
+        }
+    )
+
+    expected_output = [
+        (
+            {"", "a", "b", "c", "d", "0", "1", "2", "4", "5"},
+            "ε,0-2,4,5,a-d",
+            {"0", "1"},
+        ),
+        ({"x", "y", "z"}, "x-z", {"0"}),
+        ({"q"}, "q", {"1"}),
+    ]
+
+    assert len(expected_output) == len(actual_output)
+    for (set1, string1, states1), (set2, string2, states2) in zip(
+        sorted(actual_output, key=lambda triple: triple[1]),
+        sorted(expected_output, key=lambda triple: triple[1]),
+    ):
+        assert set1 == set2
+        assert string1 == string2
+        assert states1 == states2
