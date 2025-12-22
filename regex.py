@@ -36,7 +36,6 @@ class Regex:
             or_position = -1
             close_bracket_position = -1
             for i, char in enumerate(regex_string[1:], start=1):
-                print(i, char)
                 if char == "(":
                     bracket_level += 1
                     continue
@@ -67,7 +66,6 @@ class Regex:
                 rhs = regex_string[or_position + 1 : close_bracket_position]
                 continuation = regex_string[close_bracket_position + 1 :]
 
-                print("OR: ", regex_string, lhs, rhs, continuation)
                 first_part = OrRegex(Regex.parse(lhs), Regex.parse(rhs))
             else:
                 bracketed_string = regex_string[1:close_bracket_position]
