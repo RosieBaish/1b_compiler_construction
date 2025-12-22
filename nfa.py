@@ -35,8 +35,8 @@ class NFA:
         self.delta = delta
         self.q_0 = q_0
         self.F = F
-        self.tags = tags
-        self.state_rankings = state_rankings
+        self.tags: dict[str, str] = {}
+        self.state_rankings: list[str] = []
 
         # Check that q_0 and everything in F are valid states.
         assert self.q_0 in self.Q, (self.q_0, self.Q)
@@ -47,16 +47,21 @@ class NFA:
         for c in self.Sigma:
             assert len(c) == 1, c
 
-        # Tags and state_rankings are either both empty, or contains every state
-        if len(self.tags) > 0 or len(self.state_rankings) > 0:
-            assert len(self.Q) == len(self.tags) == len(self.state_rankings)
-            for q in self.Q:
-                assert q in self.tags
-                assert q in self.state_rankings
+        self.add_tags(tags, state_rankings)
 
         self.num_chars_accepted = 0
         self.last_accept_state: Optional[str] = None
         self.last_accept_tag: Optional[str] = None
+
+    def add_tags(self, tags: dict[str, str], state_rankings: list[str]) -> None:
+        # Tags and state_rankings are either both empty, or contains every state
+        if len(tags) > 0 or len(state_rankings) > 0:
+            assert len(self.Q) == len(tags) == len(state_rankings)
+            for q in self.Q:
+                assert q in tags
+                assert q in state_rankings
+        self.tags = tags
+        self.state_rankings = state_rankings
 
     def epsilon_close(self, states: set[str]) -> set[str]:
         closure: set[str] = states.copy()  # Everything can epsilon transition to itself
@@ -114,18 +119,21 @@ class NFA:
         return in_accept
 
     @staticmethod
-    def from_regex(regex: Regex, Sigma: set[str]) -> "NFA":
+    def from_regex(
+        regex: Regex, Sigma: set[str], accept_tag: Optional[str] = None
+    ) -> "NFA":
         """Construct an NFA out of the given regex,
         which should be an instance of one of the regex subclasses.
         The constructed regex must have at least 1 accept state to allow recursive constructions."""
+        created_nfa: NFA
         if isinstance(regex, EmptyRegex):
-            return NFA({"0", "1"}, Sigma, lambda _q, _c: set(), "0", {"1"})
+            created_nfa = NFA({"0", "1"}, Sigma, lambda _q, _c: set(), "0", {"1"})
         elif isinstance(regex, EpsilonRegex):
-            return NFA(
+            created_nfa = NFA(
                 {"0", "1"}, Sigma, lambda _q, c: {"1"} if c == "" else set(), "0", {"1"}
             )
         elif isinstance(regex, CharacterRegex):
-            return NFA(
+            created_nfa = NFA(
                 {"0", "1"},
                 Sigma,
                 lambda q, c: {"1"} if c == regex.character and q == "0" else set(),
@@ -164,7 +172,7 @@ class NFA:
                     return response
                 return set()
 
-            return NFA(Q, Sigma, transition_function, "0", {"1"})
+            created_nfa = NFA(Q, Sigma, transition_function, "0", {"1"})
         elif isinstance(regex, ConcatenationRegex):
             # The construction here doesn't epsilon, but it's easier to just stick them in here
             # rather than try to manipulate the internal states.
@@ -199,7 +207,7 @@ class NFA:
                     return response
                 return set()
 
-            return NFA(Q, Sigma, transition_function, "0", {"1"})
+            created_nfa = NFA(Q, Sigma, transition_function, "0", {"1"})
         elif isinstance(regex, StarRegex):
             nfa = NFA.from_regex(regex.r, Sigma)
             assert len(nfa.F) > 0
@@ -220,10 +228,20 @@ class NFA:
                     return response
                 return set()
 
-            return NFA(Q, Sigma, transition_function, "0", {"1"})
+            created_nfa = NFA(Q, Sigma, transition_function, "0", {"1"})
         else:
             assert isinstance(regex, Regex), regex
             assert False, "Regex is an abstract base class"
+
+        if accept_tag is not None:
+            accept_list = list(created_nfa.Q & created_nfa.F)
+            reject_list = list(created_nfa.Q - created_nfa.F)
+            tags = {s: accept_tag for s in accept_list} | {
+                s: "" for s in reject_list
+            }
+            state_order = accept_list + reject_list
+            created_nfa.add_tags(tags, state_order)
+        return created_nfa
 
     def get_transition_function_as_lookup(self) -> dict[str, dict[str, set[str]]]:
         delta_prime: dict[str, dict[str, set[str]]] = {}
