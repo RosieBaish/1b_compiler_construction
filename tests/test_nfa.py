@@ -1,6 +1,7 @@
 from string import ascii_lowercase
 
 from nfa import NFA
+import util
 
 
 def test_empty_nfa():
@@ -299,18 +300,17 @@ def test_group_transition_row():
     expected_output = [
         (
             {"", "a", "b", "c", "d", "0", "1", "2", "4", "5"},
-            "ε,0-2,4,5,a-d",
             {"0", "1"},
         ),
-        ({"x", "y", "z"}, "x-z", {"0"}),
-        ({"q"}, "q", {"1"}),
+        ({"x", "y", "z"}, {"0"}),
+        ({"q"}, {"1"}),
     ]
 
     assert len(expected_output) == len(actual_output)
-    for (set1, string1, states1), (set2, string2, states2) in zip(
-        sorted(actual_output, key=lambda triple: triple[1]),
-        sorted(expected_output, key=lambda triple: triple[1]),
+    for (set1, string1, states1), (set2, states2) in zip(
+        sorted(actual_output, key=lambda triple: util.set_to_range_string(triple[0])),
+        sorted(expected_output, key=lambda triple: util.set_to_range_string(triple[0])),
     ):
         assert set1 == set2
-        assert string1 == string2
+        assert string1 == util.set_to_range_string(set2)
         assert states1 == states2

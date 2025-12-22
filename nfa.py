@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from string import ascii_lowercase
+import util
 
 from typing import Optional
 
@@ -236,9 +237,7 @@ class NFA:
         if accept_tag is not None:
             accept_list = list(created_nfa.Q & created_nfa.F)
             reject_list = list(created_nfa.Q - created_nfa.F)
-            tags = {s: accept_tag for s in accept_list} | {
-                s: "" for s in reject_list
-            }
+            tags = {s: accept_tag for s in accept_list} | {s: "" for s in reject_list}
             state_order = accept_list + reject_list
             created_nfa.add_tags(tags, state_order)
         return created_nfa
@@ -261,44 +260,6 @@ class NFA:
         Output is a list of (set of chars, stringified version of that set, set of states they go to)
         """
 
-        def group_char_set(input_set: set[str]) -> str:
-            assert len(input_set)
-            for char in input_set:
-                assert len(char) in {0, 1}, char
-            # Work with ascii/unicode values not characters for simplicity
-            ascii_vals = sorted([ord(c) if c != "" else -1 for c in input_set])
-
-            def my_chr(c: int) -> str:
-                """Identical to chr but uses -1 for epsilon"""
-                if c == -1:
-                    return "ε"
-                else:
-                    return chr(c)
-
-            if len(ascii_vals) == 1:
-                return my_chr(ascii_vals[0])
-            groups: list[str] = []
-            current_group: list[int] = [ascii_vals[0]]
-
-            def add_current_group(current_group: list[int]) -> None:
-                if len(current_group) < 3:
-                    groups.extend([my_chr(c) for c in current_group])
-                else:
-                    groups.append(
-                        f"{my_chr(current_group[0])}-{my_chr(current_group[-1])}"
-                    )
-
-            for c in ascii_vals[1:]:
-                if c - current_group[-1] == 1:
-                    # Still contiguous
-                    current_group.append(c)
-                else:
-                    add_current_group(current_group)
-                    current_group = [c]
-            add_current_group(current_group)
-
-            return ",".join(groups)
-
         grouped_rows: dict[frozenset[str], set[str]] = {}
         # Dict from (output set) -> {set of chars that go to that output set}
         # I.e. reversed from transition_row
@@ -316,7 +277,7 @@ class NFA:
         for frozen_next_set, chars in grouped_rows.items():
             assert isinstance(frozen_next_set, frozenset)
             next_set = unfrozen_sets[frozen_next_set]
-            output.append((chars, group_char_set(chars), next_set))
+            output.append((chars, util.set_to_range_string(chars), next_set))
         return output
 
     def plot(self) -> None:  # pragma: no cover

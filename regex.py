@@ -78,8 +78,6 @@ class Regex:
                 )
                 continuation = regex_string[close_bracket_position + 2 :]
 
-                print("STAR:", regex_string, bracketed_string, continuation)
-
                 first_part = StarRegex(Regex.parse(bracketed_string))
         else:
             first_part = Regex.parse(regex_string[0])
@@ -88,7 +86,6 @@ class Regex:
         if len(continuation) == 0:
             return first_part
         else:
-            print("Continuation: ", continuation)
             return ConcatenationRegex(first_part, Regex.parse(continuation))
 
 
@@ -144,7 +141,6 @@ class ConcatenationRegex(Regex):
         for i in range(len(string)):
             w1 = string[:i]
             w2 = string[i:]
-            print(f'Testing "{w1}" and "{w2}"')
 
             if self.r1.test_string(w1) and self.r2.test_string(w2):
                 return True
@@ -160,12 +156,10 @@ class StarRegex(Regex):
 
     def test_string(self, string: str) -> bool:
         continuation = string
-        print(f'Continuation "{continuation}" (length {len(continuation)})')
         while len(continuation):
             for i in range(len(continuation)):
                 if self.r.test_string(continuation[: i + 1]):
                     continuation = continuation[i + 1 :]
-                    print(f'Continuation "{continuation}" (length {len(continuation)})')
                     break
                 # If we get here we didn't find a substring at
                 # the start of continuation that matched
