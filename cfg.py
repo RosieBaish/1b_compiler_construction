@@ -17,17 +17,14 @@ class Token:
         return str(self)
 
     def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, Token)
-            and self.name == other.name
-            and self.value == other.value
-        )
+        return isinstance(other, Token) and self.name == other.name
 
     def __lt__(self, other: object) -> bool:
-        return str(self) < str(other)
+        assert isinstance(other, Token)
+        return self.name < other.name
 
     def __hash__(self) -> int:
-        return hash((self.name, self.value))
+        return hash(self.name)
 
 
 class Symbol(Token):
