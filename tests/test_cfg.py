@@ -82,3 +82,26 @@ def test_nullable_first_symbol():
 
     for n in cfg.N:
         assert cfg.get_first(n) == expected_values[n.name], n
+
+
+def test_G3_prime_follow():
+    G3_prime = g3_prime()
+
+    plus = Terminal("+")
+    times = Terminal("*")
+    c_bracket = Terminal(")")
+    dollar = Terminal("$")
+
+    # Expected values hand-computed in my notes
+    expected_values = {
+        "S": {dollar},
+        "E": {dollar, c_bracket},
+        "E'": {dollar, c_bracket},
+        "T": {plus, dollar, c_bracket},
+        "T'": {plus, dollar, c_bracket},
+        "F": {times, plus, dollar, c_bracket},
+    }
+    G3_prime.print_follow()
+
+    for n in G3_prime.N:
+        assert G3_prime.follow[n] == expected_values[n.name], n

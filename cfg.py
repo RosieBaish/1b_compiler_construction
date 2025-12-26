@@ -40,6 +40,7 @@ class NonTerminal(Symbol):
 
 
 epsilon = Terminal("ε")
+dollar = Terminal("$")
 
 
 class CFG:
@@ -63,6 +64,9 @@ class CFG:
 
         self.first: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
         self.compute_first()
+
+        self.follow: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
+        self.compute_follow()
 
     def is_nullable(self, alpha: Symbol) -> bool:
         if isinstance(alpha, Terminal):
@@ -115,6 +119,8 @@ class CFG:
         else:
             # Misnomer to call it alpha here when it's a list, but it's the only way
             assert isinstance(alpha, list), alpha
+            if len(alpha) == 0:
+                return set()
             first_set = self.get_first(alpha[0]) - {epsilon}
             if len(alpha) > 1 and self.is_nullable(alpha[0]):
                 first_set |= self.get_first(alpha[1:])
@@ -138,6 +144,44 @@ class CFG:
         for n in self.N:
             print(f"First({n}) = {self.first[n]}")
 
+    def compute_follow(self) -> None:
+        # As a nice little efficiency win, do this in 2 stages
+        # Figure out what the fixed point dependencies are, and get all the first sets
+        # Then do the fixed point computation
+
+        fixed_point_dependencies: dict[NonTerminal, set[NonTerminal]] = {
+            n: set() for n in self.N
+        }
+
+        self.follow[self.E] = {dollar}
+
+        for n in self.N:
+            for production in self.P[n]:
+                for i, A in enumerate(production):
+                    if not isinstance(A, NonTerminal):
+                        continue
+                    beta = production[i + 1 :]
+                    self.follow[A] |= self.get_first(beta) - {epsilon}
+                    beta_nullable = all([self.is_nullable(b) for b in beta])
+
+                    if len(beta) == 0 or beta_nullable:
+                        fixed_point_dependencies[A] |= {n}
+
+        changed = True  # Initialise to True to get into the loop
+        while changed:
+            changed = False
+            for n in self.N:
+                new_follow: set[Terminal] = set()
+                for non_terminal in fixed_point_dependencies[n]:
+                    new_follow |= self.follow[non_terminal]
+                if not new_follow <= self.follow[n]:
+                    changed = True
+                    self.follow[n] |= new_follow
+
+    def print_follow(self) -> None:  # pragma: no cover
+        for n in self.N:
+            print(f"Follow({n}) = {self.follow[n]}")
+
 
 def g3_prime() -> CFG:
     """This is G3' from the notes, see lecture 4 slide 5"""
@@ -155,7 +199,6 @@ def g3_prime() -> CFG:
     o_bracket = Terminal("(")
     c_bracket = Terminal(")")
     variable = Terminal("id")
-    dollar = Terminal("$")
 
     return CFG(
         {S, E, E_prime, T, T_prime, F},
@@ -176,3 +219,4 @@ def main() -> None:
     G3_prime = g3_prime()
     G3_prime.print_nullable()
     G3_prime.print_first()
+    G3_prime.print_follow()
