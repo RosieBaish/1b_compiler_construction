@@ -61,6 +61,9 @@ class CFG:
         self.nullable: dict[NonTerminal, bool] = {}
         self.compute_nullable()
 
+        self.first: dict[NonTerminal, set[Symbol]] = {n: set() for n in self.N}
+        self.compute_first()
+
     def is_nullable(self, alpha: Symbol) -> bool:
         if isinstance(alpha, Terminal):
             assert alpha == epsilon or alpha in self.T, alpha
@@ -102,6 +105,39 @@ class CFG:
         for n in self.N:
             print(f"Nullable({n}) = {self.nullable[n]}")
 
+    def get_first(self, alpha: Symbol | list[Symbol]) -> set[Symbol]:
+        if isinstance(alpha, Terminal):
+            assert alpha == epsilon or alpha in self.T, alpha
+            return {alpha}
+        elif isinstance(alpha, NonTerminal):
+            assert alpha in self.N, alpha
+            return self.first[alpha]
+        else:
+            # Misnomer to call it alpha here when it's a list, but it's the only way
+            assert isinstance(alpha, list), alpha
+            first_set = self.get_first(alpha[0]) - {epsilon}
+            if len(alpha) > 1 and self.is_nullable(alpha[0]):
+                first_set |= self.get_first(alpha[1:])
+            if all([self.is_nullable(a) for a in alpha]):
+                first_set |= {epsilon}
+            return first_set
+
+    def compute_first(self) -> None:
+        changed = True  # Initialise to True to get into the loop
+        while changed:
+            changed = False
+            for n in self.N:
+                new_first = set()
+                for production in self.P[n]:
+                    new_first |= self.get_first(production)
+                if not new_first <= self.first[n]:
+                    changed = True
+                    self.first[n] |= new_first
+
+    def print_first(self) -> None:  # pragma: no cover
+        for n in self.N:
+            print(f"First({n}) = {self.first[n]}")
+
 
 def g3_prime() -> CFG:
     """This is G3' from the notes, see lecture 4 slide 5"""
@@ -139,3 +175,4 @@ def g3_prime() -> CFG:
 def main() -> None:
     G3_prime = g3_prime()
     G3_prime.print_nullable()
+    G3_prime.print_first()
