@@ -1,6 +1,7 @@
 import argparse
 
 import cfg
+import cfg_parser
 import dfa
 import lexer
 import nfa
@@ -20,6 +21,7 @@ def main() -> None:
     parser.add_argument("--lexer", action="store_true")
     parser.add_argument("--recursive-descent-parser-example", action="store_true")
     parser.add_argument("--cfg", action="store_true")
+    parser.add_argument("--cfg-parser", action="store_true")
 
     args = parser.parse_args()
 
@@ -35,6 +37,8 @@ def main() -> None:
         recursive_descent_parser_example.main()
     if args.cfg:
         cfg.main()
+    if args.cfg_parser:
+        cfg_parser.main()
 
 
 if __name__ == "__main__":
