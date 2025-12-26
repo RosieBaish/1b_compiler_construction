@@ -1,6 +1,8 @@
+from functools import total_ordering
 from typing import Optional
 
 
+@total_ordering
 class Token:
     def __init__(self, name: str, value: Optional[str] = None):
         self.name = name
@@ -20,6 +22,9 @@ class Token:
             and self.name == other.name
             and self.value == other.value
         )
+
+    def __lt__(self, other: object) -> bool:
+        return str(self) < str(other)
 
     def __hash__(self) -> int:
         return hash((self.name, self.value))
@@ -50,12 +55,17 @@ class CFG:
         T: set[Terminal],
         P: dict[NonTerminal, list[list[Symbol]]],
         E: NonTerminal,
+        terminals_order: Optional[list[Terminal]] = None,
+        nonterminals_order: Optional[list[NonTerminal]] = None,
         nullable_hints: dict[NonTerminal, bool] = {},
     ):
         self.N = N
         self.T = T
         self.P = P
         self.E = E
+
+        self.terminals_order = terminals_order
+        self.nonterminals_order = nonterminals_order
 
         for n in self.N:
             assert n in self.P, n
@@ -120,7 +130,11 @@ class CFG:
             assert len(to_calculate) < prev_len, (to_calculate, "Made no progress")
 
     def print_nullable(self) -> None:  # pragma: no cover
-        for n in self.N:
+        for n in (
+            sorted(list(self.N))
+            if self.nonterminals_order is None
+            else self.nonterminals_order
+        ):
             print(f"Nullable({n}) = {self.nullable[n]}")
 
     def get_first(self, alpha: Symbol | list[Symbol]) -> set[Terminal]:
@@ -155,7 +169,11 @@ class CFG:
                     self.first[n] |= new_first
 
     def print_first(self) -> None:  # pragma: no cover
-        for n in self.N:
+        for n in (
+            sorted(list(self.N))
+            if self.nonterminals_order is None
+            else self.nonterminals_order
+        ):
             print(f"First({n}) = {self.first[n]}")
 
     def compute_follow(self) -> None:
@@ -193,7 +211,11 @@ class CFG:
                     self.follow[n] |= new_follow
 
     def print_follow(self) -> None:  # pragma: no cover
-        for n in self.N:
+        for n in (
+            sorted(list(self.N))
+            if self.nonterminals_order is None
+            else self.nonterminals_order
+        ):
             print(f"Follow({n}) = {self.follow[n]}")
 
 
@@ -226,11 +248,17 @@ def g3_prime() -> CFG:
             F: [[o_bracket, E, c_bracket], [variable]],
         },
         S,
+        terminals_order=[variable, plus, times, o_bracket, c_bracket, dollar],
+        nonterminals_order=[S, E, E_prime, T, T_prime, F],
     )
 
 
 def main() -> None:
     G3_prime = g3_prime()
     G3_prime.print_nullable()
+    print()
     G3_prime.print_first()
+    print()
     G3_prime.print_follow()
+    print()
+    G3_prime.print_parse_table()
