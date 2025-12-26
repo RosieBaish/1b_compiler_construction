@@ -50,6 +50,7 @@ class CFG:
         T: set[Terminal],
         P: dict[NonTerminal, list[list[Symbol]]],
         E: NonTerminal,
+        nullable_hints: dict[NonTerminal, bool] = {},
     ):
         self.N = N
         self.T = T
@@ -60,7 +61,7 @@ class CFG:
             assert n in self.P, n
 
         self.nullable: dict[NonTerminal, bool] = {}
-        self.compute_nullable()
+        self.compute_nullable(nullable_hints)
 
         self.first: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
         self.compute_first()
@@ -78,7 +79,20 @@ class CFG:
             # This is the correct behaviour because we use the exception for "have we computed it"
             return self.nullable[alpha]
 
-    def compute_nullable(self) -> None:
+    def compute_nullable(self, hints: dict[NonTerminal, bool] = {}) -> None:
+        # In theory you can do this without the hints
+        # But if you have productions which can go to themselves
+        # (because everything left of the symbol is nullable)
+        # e.g. S -> XYS|c where X and Y are nullable
+        # Then this code can't figure it out
+        # Because it gets stuck in an infinite loop of nullable(S) iff nullable(S)
+        # So in those cases give a hint for that symbol
+        # It's ugly and I hate it but it's better than nothing
+        # I think the correct answer is to just exclude the problematic production
+        # But I've not proved that point
+        for k, v in hints.items():
+            self.nullable[k] = v
+
         to_calculate = list(self.N)
         while len(to_calculate) > 0:
             prev_len = len(to_calculate)
@@ -103,7 +117,7 @@ class CFG:
                     # We successfully checked every case, so put the result in the dict
                     self.nullable[n] = n_nullable
                     to_calculate.remove(n)
-            assert len(to_calculate) < prev_len, "Made no progress"
+            assert len(to_calculate) < prev_len, (to_calculate, "Made no progress")
 
     def print_nullable(self) -> None:  # pragma: no cover
         for n in self.N:

@@ -105,3 +105,66 @@ def test_G3_prime_follow():
 
     for n in G3_prime.N:
         assert G3_prime.follow[n] == expected_values[n.name], n
+
+
+def test_ambiguous_grammar():
+    """The non-ll(s) from lecture 4 slide 23(80)"""
+    S_prime = NonTerminal("S'")  # Needed so we can have $ as end of input
+
+    S = NonTerminal("S")
+    X = NonTerminal("X")
+    Y = NonTerminal("Y")
+
+    a = Terminal("a")
+    b = Terminal("b")
+    c = Terminal("c")
+
+    dollar = Terminal("$")  # Not in the notes
+
+    cfg = CFG(
+        {S_prime, S, X, Y},
+        {a, b, c, dollar},
+        {
+            S_prime: [[S, dollar]],
+            S: [[X, Y, S], [a]],
+            X: [[Y], [b]],
+            Y: [[c], [epsilon]],
+        },
+        S_prime,
+        nullable_hints={S: False},
+    )
+
+    expected_nullable = {
+        "S'": False,
+        "S": False,
+        "X": True,
+        "Y": True,
+    }
+    cfg.print_nullable()
+
+    for n in cfg.N:
+        assert cfg.is_nullable(n) == expected_nullable[n.name], n
+
+    expected_firsts = {
+        "S'": {a, b, c},
+        "S": {a, b, c},
+        "X": {b, c, epsilon},
+        "Y": {c, epsilon},
+    }
+
+    cfg.print_first()
+
+    for n in cfg.N:
+        assert cfg.get_first(n) == expected_firsts[n.name], n
+
+    expected_follows = {
+        "S'": {dollar},
+        "S": {dollar},
+        "X": {a, b, c},
+        "Y": {a, b, c},
+    }
+
+    cfg.print_follow()
+
+    for n in cfg.N:
+        assert cfg.follow[n] == expected_follows[n.name], n
