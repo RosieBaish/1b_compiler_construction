@@ -44,6 +44,27 @@ class NonTerminal(Symbol):
         super().__init__(name)
 
 
+class Production:
+    def __init__(self, LHS: NonTerminal, RHS: list[Symbol]):
+        self.LHS = LHS
+        self.RHS = RHS
+
+    def __getitem__(self, n: int) -> Symbol:
+        return self.RHS[n]
+
+    #    def __iter__(self, n: int) -> Iterator[Symbol]:
+    #        return iter(self.alpha)
+
+    def __hash__(self) -> int:
+        return hash((self.LHS, tuple(self.RHS)))
+
+    def __str__(self) -> str:
+        return f"{self.LHS} -> {''.join(str(r) for r in self.RHS)}"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+
 epsilon = Terminal("ε")
 dollar = Terminal("$")
 
@@ -61,7 +82,11 @@ class CFG:
     ):
         self.N = N
         self.T = T
-        self.P = P
+
+        self.P: dict[NonTerminal, list[Production]] = {n: [] for n in self.N}
+        for n, productions in P.items():
+            for production in productions:
+                self.P[n].append(Production(n, production))
         self.E = E
 
         self.terminals_order = terminals_order
@@ -78,6 +103,11 @@ class CFG:
 
         self.follow: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
         self.compute_follow()
+
+        self.parse_table: dict[NonTerminal, dict[Terminal, set[Production]]] = {
+            n: {t: set() for t in self.T} for n in self.N
+        }
+        self.compute_parse_table()
 
     def is_nullable(self, alpha: Symbol) -> bool:
         if isinstance(alpha, Terminal):
@@ -114,7 +144,7 @@ class CFG:
                 for production in productions:
                     production_nullable = True  # We'll AND this together in the loop
                     try:
-                        for alpha in production:
+                        for alpha in production.RHS:
                             production_nullable &= self.is_nullable(alpha)
                             if not production_nullable:
                                 break  # Short circuit
@@ -137,13 +167,15 @@ class CFG:
         ):
             print(f"Nullable({n}) = {self.nullable[n]}")
 
-    def get_first(self, alpha: Symbol | list[Symbol]) -> set[Terminal]:
+    def get_first(self, alpha: Symbol | list[Symbol] | Production) -> set[Terminal]:
         if isinstance(alpha, Terminal):
             assert alpha == epsilon or alpha in self.T, alpha
             return {alpha}
         elif isinstance(alpha, NonTerminal):
             assert alpha in self.N, alpha
             return self.first[alpha]
+        elif isinstance(alpha, Production):
+            return self.get_first(alpha.RHS)
         else:
             # Misnomer to call it alpha here when it's a list, but it's the only way
             assert isinstance(alpha, list), alpha
@@ -189,10 +221,10 @@ class CFG:
 
         for n in self.N:
             for production in self.P[n]:
-                for i, A in enumerate(production):
+                for i, A in enumerate(production.RHS):
                     if not isinstance(A, NonTerminal):
                         continue
-                    beta = production[i + 1 :]
+                    beta = production.RHS[i + 1 :]
                     self.follow[A] |= self.get_first(beta) - {epsilon}
                     beta_nullable = all([self.is_nullable(b) for b in beta])
 
@@ -217,6 +249,55 @@ class CFG:
             else self.nonterminals_order
         ):
             print(f"Follow({n}) = {self.follow[n]}")
+
+    def compute_parse_table(self) -> None:
+        for A, productions in self.P.items():
+            for production in productions:
+                for a in self.get_first(production):
+                    if a == epsilon:
+                        for b in self.follow[A]:
+                            self.parse_table[A][b] |= {production}
+                    else:
+                        self.parse_table[A][a] |= {production}
+
+    def print_parse_table(self) -> None:  # pragma: no cover
+        terminals = (
+            sorted(list(self.T))
+            if self.terminals_order is None
+            else self.terminals_order
+        )
+        nonterminals = (
+            sorted(list(self.N))
+            if self.nonterminals_order is None
+            else self.nonterminals_order
+        )
+
+        rows: list[list[str]] = []
+        rows.append([""] + [str(t) for t in terminals])
+        longest_production = max([len(t) for t in rows[0]])
+
+        for n in nonterminals:
+            row = [str(n)]
+            for t in terminals:
+                prods = self.parse_table[n][t]
+                prod_strings = sorted(
+                    ["".join([str(s) for s in prod.RHS]) for prod in list(prods)]
+                )
+                if len(prods) == 0:
+                    row.append("")
+                elif len(prods) == 1:
+                    row.append("".join([s for s in prod_strings[0]]))
+                else:
+                    row.append(f"{{{', '.join(prod_strings)}}}")
+            longest_production = max(longest_production, max([len(p) for p in row]))
+            rows.append(row)
+        row_strings = [
+            "|".join([f" {s:{longest_production}} " for s in row]) for row in rows
+        ]
+        row_len = len(row_strings[0])
+        assert all([len(r) == row_len for r in row_strings]), row_strings
+
+        print(("\n" + "-" * row_len + "\n").join(row_strings))
 
 
 def g3_prime() -> CFG:

@@ -107,6 +107,34 @@ def test_G3_prime_follow():
         assert G3_prime.follow[n] == expected_values[n.name], n
 
 
+def test_G3_prime_parse_table():
+    G3_prime = g3_prime()
+
+    expected_values = {
+        "S": {"id": ["E$"], "(": ["E$"]},
+        "E": {"id": ["TE'"], "(": ["TE'"]},
+        "E'": {"+": ["+TE'"], ")": ["ε"], "$": ["ε"]},
+        "T": {"id": ["FT'"], "(": ["FT'"]},
+        "T'": {"+": ["ε"], "*": ["*FT'"], ")": ["ε"], "$": ["ε"]},
+        "F": {"id": ["id"], "(": ["(E)"]},
+    }
+
+    G3_prime.print_parse_table()
+
+    for n in G3_prime.N:
+        for t in G3_prime.T:
+            if str(t) in expected_values[str(n)]:
+                prods = G3_prime.parse_table[n][t]
+                expected_prods = [
+                    f"{n} -> {v}" for v in expected_values[str(n)][str(t)]
+                ]
+                assert len(prods) == len(expected_prods)
+                for prod in prods:
+                    assert str(prod) in expected_prods
+            else:
+                assert G3_prime.parse_table[n][t] == set()
+
+
 def test_ambiguous_grammar():
     """The non-ll(s) from lecture 4 slide 23(80)"""
     S_prime = NonTerminal("S'")  # Needed so we can have $ as end of input
@@ -168,3 +196,25 @@ def test_ambiguous_grammar():
 
     for n in cfg.N:
         assert cfg.follow[n] == expected_follows[n.name], n
+
+    expected_parse_table = {
+        "S'": {"a": ["S$"], "b": ["S$"], "c": ["S$"]},
+        "S": {"a": ["XYS", "a"], "b": ["XYS"], "c": ["XYS"]},
+        "X": {"a": ["Y"], "b": ["Y", "b"], "c": ["Y"]},
+        "Y": {"a": ["ε"], "b": ["ε"], "c": ["ε", "c"]},
+    }
+
+    cfg.print_parse_table()
+
+    for n in cfg.N:
+        for t in cfg.T:
+            if str(t) in expected_parse_table[str(n)]:
+                prods = cfg.parse_table[n][t]
+                expected_prods = [
+                    f"{n} -> {v}" for v in expected_parse_table[str(n)][str(t)]
+                ]
+                assert len(prods) == len(expected_prods)
+                for prod in prods:
+                    assert str(prod) in expected_prods
+            else:
+                assert cfg.parse_table[n][t] == set()
