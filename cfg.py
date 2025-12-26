@@ -61,7 +61,7 @@ class CFG:
         self.nullable: dict[NonTerminal, bool] = {}
         self.compute_nullable()
 
-        self.first: dict[NonTerminal, set[Symbol]] = {n: set() for n in self.N}
+        self.first: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
         self.compute_first()
 
     def is_nullable(self, alpha: Symbol) -> bool:
@@ -105,7 +105,7 @@ class CFG:
         for n in self.N:
             print(f"Nullable({n}) = {self.nullable[n]}")
 
-    def get_first(self, alpha: Symbol | list[Symbol]) -> set[Symbol]:
+    def get_first(self, alpha: Symbol | list[Symbol]) -> set[Terminal]:
         if isinstance(alpha, Terminal):
             assert alpha == epsilon or alpha in self.T, alpha
             return {alpha}
