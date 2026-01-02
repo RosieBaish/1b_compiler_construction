@@ -41,16 +41,13 @@ class NonTerminal(Symbol):
         super().__init__(name)
 
 
-class Production:
+class Production:  # pragma: no cover
     def __init__(self, LHS: NonTerminal, RHS: list[Symbol]):
         self.LHS = LHS
         self.RHS = RHS
 
     def __getitem__(self, n: int) -> Symbol:
         return self.RHS[n]
-
-    #    def __iter__(self, n: int) -> Iterator[Symbol]:
-    #        return iter(self.alpha)
 
     def __hash__(self) -> int:
         return hash((self.LHS, tuple(self.RHS)))
@@ -102,10 +99,43 @@ class CFG:
         self._computed_follow = False
         self._follow: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
 
-        self._computed_parse_table = False
-        self._parse_table: dict[NonTerminal, dict[Terminal, set[Production]]] = {
+        self._computed_ll1_parse_table = False
+        self._ll1_parse_table: dict[NonTerminal, dict[Terminal, set[Production]]] = {
             n: {t: set() for t in self.T} for n in self.N
         }
+
+    def __str__(self) -> str:
+        all_prods = []
+        for k, v in self.P.items():
+            all_prods.extend(v)
+        return f"<{self.N}, {self.T}, {all_prods}, {self.E}>"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def is_left_recursive(self) -> bool:
+        """Returns true iff the grammar has a rule A -> αAβ for some nullable α"""
+
+        for A, productions in self.P.items():
+            for production in productions:
+                for symbol in production.RHS:
+                    if symbol == A:
+                        return True
+                    if not self.is_nullable(symbol):
+                        break
+        return False
+
+    def is_right_recursive(self) -> bool:
+        """Returns true iff the grammar has a rule A -> αAβ for some nullable β"""
+
+        for A, productions in self.P.items():
+            for production in productions:
+                for symbol in production.RHS[::-1]:
+                    if symbol == A:
+                        return True
+                    if not self.is_nullable(symbol):
+                        break
+        return False
 
     def is_nullable(self, alpha: Symbol) -> bool:
         if isinstance(alpha, Terminal):
@@ -277,23 +307,27 @@ class CFG:
             print(f"Follow({n}) = {self.follow[n]}")
 
     @property
-    def parse_table(self) -> dict[NonTerminal, dict[Terminal, set[Production]]]:
-        if self._computed_parse_table:
-            return self._parse_table
+    def ll1_parse_table(self) -> dict[NonTerminal, dict[Terminal, set[Production]]]:
+        if self._computed_ll1_parse_table:
+            return self._ll1_parse_table
+
+        # We could assert here that the grammar isn't left recursive
+        # However you can still generate a parse table for some left recursive grammars, you just can't parse with it
+        # So given that our goal here is education not creating tools, let's allow that case
 
         for A, productions in self.P.items():
             for production in productions:
                 for a in self.get_first(production):
                     if a == epsilon:
                         for b in self.follow[A]:
-                            self._parse_table[A][b] |= {production}
+                            self._ll1_parse_table[A][b] |= {production}
                     else:
-                        self._parse_table[A][a] |= {production}
+                        self._ll1_parse_table[A][a] |= {production}
 
-        self._computed_parse_table = True
-        return self._parse_table
+        self._computed_ll1_parse_table = True
+        return self._ll1_parse_table
 
-    def print_parse_table(self) -> None:  # pragma: no cover
+    def print_ll1_parse_table(self) -> None:  # pragma: no cover
         terminals = (
             sorted(list(self.T))
             if self.terminals_order is None
@@ -312,7 +346,7 @@ class CFG:
         for n in nonterminals:
             row = [str(n)]
             for t in terminals:
-                prods = self.parse_table[n][t]
+                prods = self.ll1_parse_table[n][t]
                 prod_strings = sorted(
                     ["".join([str(s) for s in prod.RHS]) for prod in list(prods)]
                 )
@@ -375,4 +409,4 @@ def main() -> None:
     print()
     G3_prime.print_follow()
     print()
-    G3_prime.print_parse_table()
+    G3_prime.print_ll1_parse_table()

@@ -16,7 +16,7 @@ class Parser:
                 offset += 1
             else:
                 assert isinstance(X, NonTerminal)
-                productions = list(self.cfg.parse_table[X][a])
+                productions = list(self.cfg.ll1_parse_table[X][a])
                 assert len(productions) != 0, ("Parse Error - no rule", tokens, offset)
                 assert len(productions) == 1, (
                     "Parse Error - ambuguous situation",
