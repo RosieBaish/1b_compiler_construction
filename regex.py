@@ -11,9 +11,14 @@ class Regex:
     def __repr__(self) -> str:
         return str(self)
 
+    def __eq__(self, other: object) -> bool:
+        # Quick and dirty equality function
+        return isinstance(other, Regex) and str(self) == str(other)
+
     @staticmethod
     def parse(regex_string: str) -> "Regex":
         """To make parsing simple, or and star need to be bracketed
+        {escapable_chars} is the list of things you can escape to make them literal
         So our language is:
         r := ''
            | a \\in Sigma
@@ -21,6 +26,8 @@ class Regex:
            | rr
            | (r)*
         """
+
+        escapable_chars = ["(", ")", "\\"]
 
         # I'm deliberately not doing this 'properly' because a proper
         # implementation is the end goal
@@ -41,8 +48,15 @@ class Regex:
             found_or = False
             or_position = -1
             close_bracket_position = -1
+            escape_next = False
             for i, char in enumerate(regex_string[1:], start=1):
-                if char == "(":
+                if escape_next:
+                    escape_next = False
+                    continue
+
+                if char == "\\":
+                    escape_next = True
+                elif char == "(":
                     bracket_level += 1
                     continue
                 elif char == ")":
@@ -88,6 +102,10 @@ class Regex:
                 util.range_string_to_set(regex_string[: close_bracket_position + 1])
             )
             continuation = regex_string[close_bracket_position + 1 :]
+        elif regex_string[0] == "\\":
+            assert regex_string[1] in escapable_chars, regex_string
+            first_part = CharacterRegex(regex_string[1])
+            continuation = regex_string[2:]
         else:
             first_part = Regex.parse(regex_string[0])
             continuation = regex_string[1:]
