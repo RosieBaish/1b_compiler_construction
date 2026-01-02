@@ -1,6 +1,7 @@
 from dfa import DFA
 from nfa import NFA
 from regex import Regex
+from cfg import Token
 
 from string import printable
 
@@ -19,16 +20,17 @@ class LexerError(BaseException):
 
 
 class Lexer:
-    def __init__(self, token_descriptions: list[tuple[str, str]]):
+    def __init__(self, token_descriptions: list[tuple[str, str, list[str]]]):
+        self.token_descriptions = token_descriptions
         nfas = [
             NFA.from_regex(Regex.parse(r), set(printable), accept_tag=t)
-            for (r, t) in token_descriptions
+            for (t, r, _) in token_descriptions
         ]
         self.dfa = DFA.fromNFA(NFA.merge_nfas(nfas))
 
-    def lex(self, input_string: str) -> list[tuple[str, str]]:
+    def lex(self, input_string: str) -> list[Token]:
         characters_consumed = 0
-        tokens: list[tuple[str, str]] = []
+        tokens: list[Token] = []
         while characters_consumed < len(input_string):
             self.dfa.test_string(input_string[characters_consumed:])
             if self.dfa.num_chars_accepted == 0 or self.dfa.last_accept_tag is None:
@@ -38,15 +40,23 @@ class Lexer:
                     input_string,
                 )
             token = self.dfa.last_accept_tag
-            tokens.append(
-                (
-                    token,
-                    input_string[
-                        characters_consumed : characters_consumed
-                        + self.dfa.num_chars_accepted
-                    ],
-                )
+
+            token_actions = next(
+                td[2] for td in self.token_descriptions if td[0] == token
             )
+            if "IGNORE" not in token_actions:
+                if "STORE" in token_actions:
+                    tokens.append(
+                        Token(
+                            token,
+                            input_string[
+                                characters_consumed : characters_consumed
+                                + self.dfa.num_chars_accepted
+                            ],
+                        )
+                    )
+                else:
+                    tokens.append(Token(token))
             characters_consumed += self.dfa.num_chars_accepted
         return tokens
 
@@ -54,11 +64,11 @@ class Lexer:
 def main() -> None:
     lexer = Lexer(
         [
-            ("if", "IF"),
-            ("then", "THEN"),
-            ("[a-zA-Z]([a-zA-Z0-9])*", "IDENT"),
-            ("[0-9]", "INT"),
-            ("[ \t\n]", "SKIP"),
+            ("IF", "if", []),
+            ("THEN", "then", []),
+            ("IDENT", "[a-zA-Z]([a-zA-Z0-9])*", ["STORE"]),
+            ("INT", "[0-9]", ["STORE"]),
+            ("SKIP", "[ \t\n]", ["IGNORE"]),
         ]
     )
     print(lexer.lex("if x then y"))

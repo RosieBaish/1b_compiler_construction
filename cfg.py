@@ -8,6 +8,13 @@ class Token:
         self.name = name
         self.value = value
 
+    def identical_to(self, other: object) -> bool:
+        return (
+            isinstance(other, Token)
+            and self.name == other.name
+            and self.value == other.value
+        )
+
     def __str__(self) -> str:
         if self.value is not None:
             return f"{self.name}({self.value})"

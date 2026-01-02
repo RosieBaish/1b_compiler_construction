@@ -1,28 +1,29 @@
 from lexer import Lexer, LexerError
 
+from cfg import Token
+
 import pytest
 
 
 def test_lexer_notes():
     lexer = Lexer(
         [
-            ("if", "IF"),
-            ("then", "THEN"),
-            ("[a-zA-Z]([a-zA-Z0-9])*", "IDENT"),
-            ("[0-9]", "INT"),
-            ("[ \t\n]", "SKIP"),
+            ("IF", "if", []),
+            ("THEN", "then", []),
+            ("IDENT", "[a-zA-Z]([a-zA-Z0-9])*", ["STORE"]),
+            ("INT", "[0-9]", ["STORE"]),
+            ("SKIP", "[ \t\n]", ["IGNORE"]),
         ]
     )
 
-    assert lexer.lex("if") == [("IF", "if")]
-    assert lexer.lex("if ") == [("IF", "if"), ("SKIP", " ")]
+    assert lexer.lex("if") == [Token("IF")]
+    assert lexer.lex("if ") == [Token("IF")]
     assert lexer.lex("if x then") == [
-        ("IF", "if"),
-        ("SKIP", " "),
-        ("IDENT", "x"),
-        ("SKIP", " "),
-        ("THEN", "then"),
+        Token("IF"),
+        Token("IDENT"),
+        Token("THEN"),
     ]
+    assert lexer.lex("if x then")[1].identical_to(Token("IDENT", "x"))
 
     with pytest.raises(LexerError) as le:
         lexer.lex("@")
