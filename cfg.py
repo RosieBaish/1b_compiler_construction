@@ -92,19 +92,20 @@ class CFG:
         for n in self.N:
             assert n in self.P, n
 
-        self.nullable: dict[NonTerminal, bool] = {}
-        self.compute_nullable(nullable_hints)
+        self._computed_nullable = False
+        self._nullable: dict[NonTerminal, bool] = {}
+        self._nullable_hints = nullable_hints
 
-        self.first: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
-        self.compute_first()
+        self._computed_first = False
+        self._first: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
 
-        self.follow: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
-        self.compute_follow()
+        self._computed_follow = False
+        self._follow: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
 
-        self.parse_table: dict[NonTerminal, dict[Terminal, set[Production]]] = {
+        self._computed_parse_table = False
+        self._parse_table: dict[NonTerminal, dict[Terminal, set[Production]]] = {
             n: {t: set() for t in self.T} for n in self.N
         }
-        self.compute_parse_table()
 
     def is_nullable(self, alpha: Symbol) -> bool:
         if isinstance(alpha, Terminal):
@@ -116,7 +117,8 @@ class CFG:
             # This is the correct behaviour because we use the exception for "have we computed it"
             return self.nullable[alpha]
 
-    def compute_nullable(self, hints: dict[NonTerminal, bool] = {}) -> None:
+    @property
+    def nullable(self) -> dict[NonTerminal, bool]:
         # In theory you can do this without the hints
         # But if you have productions which can go to themselves
         # (because everything left of the symbol is nullable)
@@ -127,8 +129,16 @@ class CFG:
         # It's ugly and I hate it but it's better than nothing
         # I think the correct answer is to just exclude the problematic production
         # But I've not proved that point
-        for k, v in hints.items():
-            self.nullable[k] = v
+
+        if self._computed_nullable:
+            return self._nullable
+
+        # We haven't fully computed it yet, but we use the partially computed version
+        # In the calculation so we need to not just be in an infinite loop
+        self._computed_nullable = True
+
+        for k, v in self._nullable_hints.items():
+            self._nullable[k] = v
 
         to_calculate = list(self.N)
         while len(to_calculate) > 0:
@@ -152,9 +162,11 @@ class CFG:
                         break
                 if not exception:
                     # We successfully checked every case, so put the result in the dict
-                    self.nullable[n] = n_nullable
+                    self._nullable[n] = n_nullable
                     to_calculate.remove(n)
             assert len(to_calculate) < prev_len, (to_calculate, "Made no progress")
+
+        return self._nullable
 
     def print_nullable(self) -> None:  # pragma: no cover
         for n in (
@@ -185,7 +197,15 @@ class CFG:
                 first_set |= {epsilon}
             return first_set
 
-    def compute_first(self) -> None:
+    @property
+    def first(self) -> dict[NonTerminal, set[Terminal]]:
+        if self._computed_first:
+            return self._first
+
+        # We haven't fully computed it yet, but we use the partially computed version
+        # In the calculation so we need to not just be in an infinite loop
+        self._computed_first = True
+
         changed = True  # Initialise to True to get into the loop
         while changed:
             changed = False
@@ -193,9 +213,11 @@ class CFG:
                 new_first = set()
                 for production in self.P[n]:
                     new_first |= self.get_first(production)
-                if not new_first <= self.first[n]:
+                if not new_first <= self._first[n]:
                     changed = True
-                    self.first[n] |= new_first
+                    self._first[n] |= new_first
+
+        return self._first
 
     def print_first(self) -> None:  # pragma: no cover
         for n in (
@@ -205,16 +227,20 @@ class CFG:
         ):
             print(f"First({n}) = {self.first[n]}")
 
-    def compute_follow(self) -> None:
+    @property
+    def follow(self) -> dict[NonTerminal, set[Terminal]]:
         # As a nice little efficiency win, do this in 2 stages
         # Figure out what the fixed point dependencies are, and get all the first sets
         # Then do the fixed point computation
+
+        if self._computed_follow:
+            return self._follow
 
         fixed_point_dependencies: dict[NonTerminal, set[NonTerminal]] = {
             n: set() for n in self.N
         }
 
-        self.follow[self.E] = {dollar}
+        self._follow[self.E] = {dollar}
 
         for n in self.N:
             for production in self.P[n]:
@@ -222,7 +248,7 @@ class CFG:
                     if not isinstance(A, NonTerminal):
                         continue
                     beta = production.RHS[i + 1 :]
-                    self.follow[A] |= self.get_first(beta) - {epsilon}
+                    self._follow[A] |= self.get_first(beta) - {epsilon}
                     beta_nullable = all([self.is_nullable(b) for b in beta])
 
                     if len(beta) == 0 or beta_nullable:
@@ -234,10 +260,13 @@ class CFG:
             for n in self.N:
                 new_follow: set[Terminal] = set()
                 for non_terminal in fixed_point_dependencies[n]:
-                    new_follow |= self.follow[non_terminal]
-                if not new_follow <= self.follow[n]:
+                    new_follow |= self._follow[non_terminal]
+                if not new_follow <= self._follow[n]:
                     changed = True
-                    self.follow[n] |= new_follow
+                    self._follow[n] |= new_follow
+
+        self._computed_follow = True
+        return self._follow
 
     def print_follow(self) -> None:  # pragma: no cover
         for n in (
@@ -247,15 +276,22 @@ class CFG:
         ):
             print(f"Follow({n}) = {self.follow[n]}")
 
-    def compute_parse_table(self) -> None:
+    @property
+    def parse_table(self) -> dict[NonTerminal, dict[Terminal, set[Production]]]:
+        if self._computed_parse_table:
+            return self._parse_table
+
         for A, productions in self.P.items():
             for production in productions:
                 for a in self.get_first(production):
                     if a == epsilon:
                         for b in self.follow[A]:
-                            self.parse_table[A][b] |= {production}
+                            self._parse_table[A][b] |= {production}
                     else:
-                        self.parse_table[A][a] |= {production}
+                        self._parse_table[A][a] |= {production}
+
+        self._computed_parse_table = True
+        return self._parse_table
 
     def print_parse_table(self) -> None:  # pragma: no cover
         terminals = (
