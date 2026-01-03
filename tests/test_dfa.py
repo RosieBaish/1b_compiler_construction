@@ -1,6 +1,7 @@
 from string import ascii_lowercase
 
 from dfa import DFA
+from cfg import Token
 
 
 def test_empty_dfa():
@@ -164,3 +165,25 @@ def test_notes():
     assert not dfa.test_string("abbb")
     assert not dfa.test_string("ab")
     assert not dfa.test_string("bb")
+
+
+def test_typed_dfa():
+    # This is test_a_star from above, but with a typed DFA
+
+    a = Token("a")
+    b = Token("b")
+
+    dfa = DFA(
+        {0, 1, -1},
+        {a, b},
+        lambda q, c: 1 if q in {0, 1} and c == a else -1,
+        0,
+        {0, 1},
+    )
+
+    assert dfa.test_string([])
+    assert dfa.test_string([a])
+    assert not dfa.test_string([b])
+    assert dfa.test_string([a, a])
+    assert dfa.test_string([a, a, a, a, a, a, a])
+    assert not dfa.test_string([a, a, b])
