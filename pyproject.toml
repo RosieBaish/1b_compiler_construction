@@ -24,7 +24,7 @@ exclude = "^tests/"
 
 
 [tool.pytest.ini_options]
-addopts = "--cov=."
+addopts = "--cov=. --cov-report=term-missing"
 
 [tool.coverage.run]
 omit = ["tests/*", "main.py"]
