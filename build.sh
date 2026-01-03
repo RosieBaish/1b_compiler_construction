@@ -10,4 +10,6 @@ uv run ruff format
 
 uv run pytest --cov=.
 
-uv run main.py
+coverage report -m
+
+uv run main.py --cfg
