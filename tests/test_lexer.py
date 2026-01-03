@@ -8,11 +8,11 @@ import pytest
 def test_lexer_notes():
     lexer = Lexer(
         [
-            ("IF", "if", []),
-            ("THEN", "then", []),
-            ("IDENT", "[a-zA-Z]([a-zA-Z0-9])*", ["STORE"]),
-            ("INT", "[0-9]", ["STORE"]),
-            ("SKIP", "[ \t\n]", ["IGNORE"]),
+            (Token("IF"), "if", []),
+            (Token("THEN"), "then", []),
+            (Token("IDENT"), "[a-zA-Z]([a-zA-Z0-9])*", ["STORE"]),
+            (Token("INT"), "[0-9]", ["STORE"]),
+            (Token("SKIP"), "[ \t\n]", ["IGNORE"]),
         ]
     )
 
