@@ -1,4 +1,4 @@
-from cfg import Terminal, NonTerminal, Symbol, epsilon
+from cfg import CFG, Terminal, NonTerminal, Symbol, epsilon
 from regex import Regex
 
 from typing import Optional
@@ -45,6 +45,8 @@ class Grammar:
         self.nonterminals: list[NonTerminal] = []
         self.productions: dict[NonTerminal, list[list[Symbol]]] = {}
         self.start_symbol: NonTerminal
+
+        self._cfg: Optional[CFG] = None
 
         if filename != "":
             with open(filename) as f:
@@ -167,3 +169,15 @@ class Grammar:
     @property
     def terminals(self) -> list[Terminal]:
         return [t for (t, _, _) in self.terminal_triples]
+
+    @property
+    def cfg(self) -> CFG:
+        if self._cfg is not None:
+            return self._cfg
+        self._cfg = CFG(
+            set(self.nonterminals),
+            set(self.terminals),
+            self.productions,
+            self.start_symbol,
+        )
+        return self._cfg

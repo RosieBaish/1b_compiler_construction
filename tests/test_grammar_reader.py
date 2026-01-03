@@ -1,6 +1,6 @@
 from grammar_reader import Grammar
 
-from cfg import Terminal, NonTerminal, epsilon
+from cfg import CFG, Terminal, NonTerminal, epsilon
 from regex import Regex
 
 
@@ -351,3 +351,32 @@ def test_production_contains_token_not_token_name():
     assert g.nonterminals == [A]
     assert g.productions == {A: [[a], [epsilon]]}
     assert g.start_symbol == A
+
+
+def test_cfg():
+    g = Grammar(
+        contents="""
+    Grammar: Basic 1
+
+    Terminals Start
+    a: "a"
+    Terminals End
+
+    NonTerminals Start
+    A
+    NonTerminals End
+
+    Productions Start
+    A -> a
+    Productions End
+
+    Start Symbol: A
+    """
+    )
+
+    a = Terminal("a")
+    A = NonTerminal("A")
+
+    assert g.name == "Basic 1"
+    assert isinstance(g.cfg, CFG)
+    assert g.cfg == CFG({A}, {a}, {A: [[a]]}, A)

@@ -65,6 +65,13 @@ class Production:  # pragma: no cover
     def __repr__(self) -> str:
         return str(self)
 
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, Production)
+            and self.LHS == other.LHS
+            and self.RHS == other.RHS
+        )
+
 
 epsilon = Terminal("ε")
 dollar = Terminal("$")
@@ -119,6 +126,15 @@ class CFG:
 
     def __repr__(self) -> str:
         return str(self)
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, CFG)
+            and self.N == other.N
+            and self.T == other.T
+            and self.P == other.P
+            and self.E == other.E
+        )
 
     def is_left_recursive(self) -> bool:
         """Returns true iff the grammar has a rule A -> αAβ for some nullable α"""
