@@ -95,8 +95,8 @@ SIMPLE_EXPR -> ()
 	     | ! EXPR
 	     | ref EXPR
 
-EXPRLIST -> EXPR
-	  | EXPR ; EXPRLIST
+EXPR_LIST -> EXPR
+	  | EXPR ; EXPR_LIST
 
 TYPE -> bool
        | int

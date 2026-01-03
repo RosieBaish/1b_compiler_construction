@@ -1,6 +1,6 @@
 from grammar_reader import Grammar
 
-from cfg import Token, Terminal
+from cfg import CFG, Token, Terminal
 from lexer import Lexer
 
 
@@ -97,3 +97,9 @@ if ? = 0 then 17 else 21
     assert len(expected) == len(actual)
     for e, a in zip(expected, actual):
         assert e.identical_to(a)
+
+
+def test_cfg_created_successfully():
+    g = Grammar(filename="slang.grammar")
+
+    assert isinstance(g.cfg, CFG)
