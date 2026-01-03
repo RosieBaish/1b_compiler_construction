@@ -1,0 +1,111 @@
+Grammar: SLang
+
+Terminals Start
+WHITESPACE: "([ \n\t])*" IGNORE
+LPAREN: "\("
+RPAREN: "\)"
+COMMA: ","
+COLON: ":"
+SEMICOLON: ";"
+ADD: "+"
+SUB: "-"
+MUL: "*"
+DIV: "/"
+NOT: "~"
+EQUAL: "="
+LT: "<"
+ANDOP: "&&"
+OROP: "||"
+WHAT: "?"
+UNIT: "\(\)"
+TRUE: "[tT]rue"
+FALSE: "[fF]alse"
+IF: "if"
+THEN: "then"
+ELSE: "else"
+LET: "let"
+IN: "in"
+BEGIN: "begin"
+END: "end"
+BOOL: "bool"
+INTTYPE: "int"
+UNITTYPE: "unit"
+ARROW: "->"
+BAR: "|"
+INL: "inl"
+INR: "inr"
+FST: "fst"
+SND: "snd"
+FUN: "fun"
+CASE: "case"
+OF: "of"
+REF: "ref"
+ASSIGN: ":="
+BANG: "!"
+WHILE: "while"
+DO: "do"
+INT: "[0-9]([0-9])*" STORE
+IDENT: "[a-zA-Z]([a-zA-Z0-9_'])*" STORE
+Terminals End
+
+NonTerminals Start
+EXPR
+EXPR1
+SIMPLE_EXPR
+EXPR_LIST
+TYPE
+NonTerminals End
+
+Productions Start
+EXPR -> EXPR1
+      | begin EXPRlist end
+      | if EXPR then EXPR else EXPR
+      | while EXPR do EXPR
+      | fst EXPR
+      | snd EXPR
+      | inl TYPE EXPR
+      | inr TYPE EXPR
+      | fun ( IDENT : TYPE ) -> EXPR
+      | let IDENT : TYPE = EXPR in EXPR
+      | let IDENT ( IDENT : TYPE ) : TYPE = EXPR in EXPR
+      | case EXPR of inl ( IDENT : TYPE ) -> EXPR BAR inr ( IDENT : TYPE ) -> EXPR
+
+EXPR1 -> SIMPLE_EXPR
+       | - EXPR1
+       | EXPR1 + EXPR1
+       | EXPR1 - EXPR1
+       | EXPR1 * EXPR1
+       | EXPR1 / EXPR1
+       | EXPR1 < EXPR1
+       | EXPR1 = EXPR1
+       | EXPR1 && EXPR1
+       | EXPR1 || EXPR1
+       | EXPR1 := EXPR1
+       | EXPR1 SIMPLE_EXPR
+
+SIMPLE_EXPR -> ()
+	     | INT
+	     | ?
+	     | IDENT
+	     | TRUE
+	     | FALSE
+	     | ( EXPR )
+	     | ( EXPR , EXPR )
+	     | ~ EXPR
+	     | ! EXPR
+	     | ref EXPR
+
+EXPRLIST -> EXPR
+	  | EXPR ; EXPRLIST
+
+TYPE -> bool
+       | int
+       | unit
+       | TYPE -> TYPE
+       | TYPE * TYPE
+       | TYPE + TYPE
+       | TYPE ref
+       | ( TYPE )
+Productions End
+
+Start Symbol: EXPR
