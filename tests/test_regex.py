@@ -109,7 +109,7 @@ def test_literal_backslash_alone():
     regex = Regex.parse(single_backslash + single_backslash)
 
     assert regex.test_string(single_backslash)
-    assert not regex.test_string("".join([single_backslash, single_backslash]))
+    assert not regex.test_string(single_backslash + single_backslash)
 
 
 def test_literal_backslash_in_longer():
@@ -117,41 +117,51 @@ def test_literal_backslash_in_longer():
 
     regex = Regex.parse("abc" + single_backslash + single_backslash + "de")
 
-    assert regex.test_string("abc\\de")
-    assert not regex.test_string("abc\\\\de")
+    assert regex.test_string("abc" + single_backslash + "de")
+    assert not regex.test_string("abc" + single_backslash + single_backslash + "de")
 
 
 def test_open_bracket_alone():
-    regex = Regex.parse("\\(")
+    single_backslash = chr(92)  # Doing this to be unambiguous about string escaping
+
+    regex = Regex.parse(single_backslash + "(")
 
     assert regex.test_string("(")
-    assert not regex.test_string("\\(")
+    assert not regex.test_string(single_backslash + "(")
 
 
 def test_open_bracket_in_longer():
-    regex = Regex.parse("abc\\(de")
+    single_backslash = chr(92)  # Doing this to be unambiguous about string escaping
+
+    regex = Regex.parse("abc" + single_backslash + "(de")
 
     assert regex.test_string("abc(de")
-    assert not regex.test_string("abc\\(de")
+    assert not regex.test_string("abc" + single_backslash + "(de")
 
 
 def test_close_bracket_alone():
-    regex = Regex.parse("\\)")
+    single_backslash = chr(92)  # Doing this to be unambiguous about string escaping
+
+    regex = Regex.parse(single_backslash + ")")
 
     assert regex.test_string(")")
-    assert not regex.test_string("\\)")
+    assert not regex.test_string(single_backslash + ")")
 
 
 def test_close_bracket_in_longer():
-    regex = Regex.parse("abc\\)de")
+    single_backslash = chr(92)  # Doing this to be unambiguous about string escaping
+
+    regex = Regex.parse("abc" + single_backslash + ")de")
 
     assert regex.test_string("abc)de")
-    assert not regex.test_string("abc\\)de")
+    assert not regex.test_string("abc" + single_backslash + ")de")
 
 
 def test_escaped_brackets_in_star():
+    single_backslash = chr(92)  # Doing this to be unambiguous about string escaping
+
     regex = Regex.parse(
-        "abc(\\()*de"
+        "abc(" + single_backslash + "()*de"
     )  # abc then as many open brackets as you like then de
 
     assert regex.test_string("abcde")
@@ -159,3 +169,40 @@ def test_escaped_brackets_in_star():
     assert regex.test_string("abc((de")
     assert regex.test_string("abc(((de")
     assert not regex.test_string("abc(e")
+    assert not regex.test_string("abc" + single_backslash + "(de")
+
+
+def test_new_line_alone():
+    single_backslash = chr(92)  # Doing this to be unambiguous about string escaping
+
+    regex = Regex.parse("\n")
+
+    assert regex.test_string("\n")
+    assert not regex.test_string(single_backslash + "n")
+
+
+def test_new_line_in_longer():
+    single_backslash = chr(92)  # Doing this to be unambiguous about string escaping
+
+    regex = Regex.parse("abc\nabc")
+
+    assert regex.test_string("abc\nabc")
+    assert not regex.test_string("abc" + single_backslash + "nabc")
+
+
+def test_tab_alone():
+    single_backslash = chr(92)  # Doing this to be unambiguous about string escaping
+
+    regex = Regex.parse("\t")
+
+    assert regex.test_string("\t")
+    assert not regex.test_string(single_backslash + "t")
+
+
+def test_tab_in_longer():
+    single_backslash = chr(92)  # Doing this to be unambiguous about string escaping
+
+    regex = Regex.parse("abc\tabc")
+
+    assert regex.test_string("abc\tabc")
+    assert not regex.test_string("abc" + single_backslash + "tabc")

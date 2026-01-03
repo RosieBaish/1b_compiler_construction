@@ -5,7 +5,7 @@ import abc
 
 class Regex:
     @abc.abstractmethod
-    def test_string(self, string: str) -> bool:  #
+    def test_string(self, string: str) -> bool:
         """Returns True iff the string matches the regex"""
 
     def __repr__(self) -> str:
@@ -21,7 +21,7 @@ class Regex:
         {escapable_chars} is the list of things you can escape to make them literal
         So our language is:
         r := ''
-           | a \\in Sigma
+           | a ∈ Sigma
            | (r + r) # Using + for OR
            | rr
            | (r)*
