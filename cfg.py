@@ -48,7 +48,7 @@ class NonTerminal(Symbol):
         super().__init__(name)
 
 
-class Production:  # pragma: no cover
+class Production:
     def __init__(self, LHS: NonTerminal, RHS: list[Symbol]):
         self.LHS = LHS
         self.RHS = RHS
@@ -60,7 +60,8 @@ class Production:  # pragma: no cover
         return hash((self.LHS, tuple(self.RHS)))
 
     def __str__(self) -> str:
-        return f"{self.LHS} -> {''.join(str(r) for r in self.RHS)}"
+        joiner = "" if all(len(str(s)) == 1 for s in self.RHS) else " "
+        return f"{self.LHS} -> {joiner.join(str(r) for r in self.RHS)}"
 
     def __repr__(self) -> str:
         return str(self)

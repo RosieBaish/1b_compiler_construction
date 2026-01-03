@@ -31,9 +31,12 @@ omit = ["tests/*", "main.py"]
 
 [tool.coverage.report]
 exclude_also = [
-	     # We don't need to check str and repr
+	     # We don't need to check dunders
 	     "def __repr__",
 	     "def __str__",
+	     "def __getitem__",
+	     "def __hash__",
+	     "def __eq__",
 
 	     # We don't need to check main functions
 	     "def main",
