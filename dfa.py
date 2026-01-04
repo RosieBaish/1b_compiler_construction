@@ -62,8 +62,6 @@ class DFA(Generic[StateType, TokenType, TagType]):
         else:
             token_list = string
 
-        print(string, token_list)
-
         q = self.q_0
         num_chars_consumed = 0  # Running total
         self.num_chars_accepted = 0  # Number of chars accepted
