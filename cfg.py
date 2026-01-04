@@ -457,12 +457,12 @@ class CFG:
         return self._lr0_dfa
 
     @property
-    def slr1_action(self) -> dict[int, dict[Terminal, list[LR0_Action]]]:
+    def slr1_action(self) -> dict[int, dict[Terminal, Optional[LR0_Action]]]:
         dfa = self.lr0_dfa
         assert hasattr(dfa, "state_list")
         states: list[frozenset[LR0_Item]] = dfa.state_list
 
-        action_table: dict[int, dict[Terminal, list[LR0_Action]]] = {
+        action_list_table: dict[int, dict[Terminal, list[LR0_Action]]] = {
             i: {t: [] for t in self.T | {dollar}} for i in range(len(states))
         }
 
@@ -475,15 +475,60 @@ class CFG:
                     new_action = LR0_Shift(
                         action.t, states.index(dfa.delta(state, action.t))
                     )
-                    action_table[i][action.t].append(new_action)
+                    action_list_table[i][action.t].append(new_action)
                 else:
                     assert isinstance(action, LR0_Reduce), action
                     if action.prod == self.starting_prod:
-                        action_table[i][dollar].append(LR0_Accept())
+                        action_list_table[i][dollar].append(LR0_Accept())
                         continue
                     for t in self.follow[action.prod.LHS]:
-                        action_table[i][t].append(action)
+                        action_list_table[i][t].append(action)
 
+        action_table: dict[int, dict[Terminal, Optional[LR0_Action]]] = {
+            i: {t: None for t in self.T | {dollar}} for i in range(len(states))
+        }
+
+        conflicts = 0
+        for i, state in enumerate(states):
+            for t in self.terminals_order + [dollar]:
+                action_list = action_list_table[i][t]
+                if len(action_list) == 0:
+                    continue
+                elif len(action_list) == 1:
+                    action_table[i][t] = action_list[0]
+                    continue
+                # Multiple actions
+                if all(isinstance(action, LR0_Shift) for action in action_list) and all(
+                    action == action_list[0] for action in action_list
+                ):
+                    # We have multiple shift actions but they're identical
+                    # So it doesn't matter
+                    action_table[i][t] = action_list[0]
+                    continue
+                # This is a conflict
+                assert LR0_Accept() not in action_list, (
+                    "It shouldn't be possible to have an Accept conflict unless the grammar has $ as a terminal",
+                    action_list,
+                )
+                if any(isinstance(action, LR0_Shift) for action in action_list) and any(
+                    isinstance(action, LR0_Reduce) for action in action_list
+                ):
+                    print(f"Shift/Reduce Conflict in state {i} with terminal {t}")
+                    print("State: ", state)
+                    print("Actions: ", action_list)
+                    print()
+                    conflicts += 1
+                    continue
+                if all(isinstance(action, LR0_Reduce) for action in action_list):
+                    print(f"Reduce/Reduce Conflict in state {i} with terminal {t}")
+                    print("State: ", state)
+                    print("Actions: ", action_list)
+                    print()
+                    conflicts += 1
+                    continue
+                assert False, "No more types of conflict"  # pragma: no cover
+
+        assert conflicts == 0, f"{conflicts} Grammar conflict, see previous output"
         return action_table
 
     def print_slr1_action(self) -> None:  # pragma: no cover
@@ -494,14 +539,11 @@ class CFG:
         for i in range(len(self.lr0_dfa.Q)):
             row = [str(i)]
             for t in self.terminals_order + [dollar]:
-                actions = self.slr1_action[i][t]
-                action_strings = [str(a) for a in actions]
-                if len(actions) == 0:
+                action = self.slr1_action[i][t]
+                if action is None:
                     row.append("")
-                elif len(actions) == 1:
-                    row.append(action_strings[0])
                 else:
-                    row.append(f"{{{', '.join(action_strings)}}}")
+                    row.append(f"{str(action)}")
             longest_action = max(longest_action, max([len(a) for a in row]))
             rows.append(row)
         row_strings = [

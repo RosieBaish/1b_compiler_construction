@@ -51,13 +51,11 @@ def parse_internal(
         )
         a = source[source_index]
         s = parser_stack[-1]
-        action_list = Action[s][a]
-        if len(action_list) == 0:
+        action = Action[s][a]
+        if action is None:
             raise ParseError(
                 "Unexpected token, unable to proceed", source_index, source
             )
-        assert len(action_list) == 1, ("Invalid ACTION table", s, a, action_list)
-        action = action_list[0]
         if isinstance(action, LR0_Shift):
             assert a == action.t, ("Invalid Shift Action", s, a, action)
             assert action.next_state is not None, ("Invalid Shift Action", s, a, action)

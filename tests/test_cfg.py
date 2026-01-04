@@ -10,6 +10,8 @@ from common import (
     LR0_Reduce,
 )
 
+import pytest
+
 
 def test_G3_prime_nullable_nonterminals():
     G3_prime = g3_prime()
@@ -754,10 +756,10 @@ def test_lr0_dfa_notes():
     for i in range(len(expected_states)):
         for t in cfg.terminals_order + [dollar]:
             if t in expected_action[i]:
-                assert cfg.slr1_action[i][t] == [expected_action[i][t]]
+                assert cfg.slr1_action[i][t] == expected_action[i][t]
             else:
                 # Actual table uses the empty list, I ommitted it for clarity above
-                assert cfg.slr1_action[i][t] == []
+                assert cfg.slr1_action[i][t] is None, (i, t)
 
         for n in cfg.nonterminals_order:
             if n in expected_goto[i]:
@@ -765,3 +767,63 @@ def test_lr0_dfa_notes():
             else:
                 # Actual table uses the None, I ommitted it for clarity above
                 assert cfg.slr1_goto[i][n] is None, (i, n)
+
+
+def test_slr1_shift_reduce_conflict_detection(capsys):
+    A = NonTerminal("A")
+    B = NonTerminal("B")
+
+    a = Terminal("a")
+    b = Terminal("b")
+    c = Terminal("c")
+    d = Terminal("d")
+
+    P = {
+        A: [[B, a], [b, B, c], [d, c]],
+        B: [[d]],
+    }
+
+    cfg = CFG({A, B}, {a, b, c, d}, P, A, add_unique_starting_production=True)
+
+    _ = capsys.readouterr()
+    with pytest.raises(AssertionError) as e:
+        _ = cfg.slr1_action
+    captured = capsys.readouterr()
+
+    # Deliberately not asserting the state numbers because that's an implementation detail
+    assert e.value.args[0].startswith("1 Grammar conflict")
+    assert "Shift/Reduce Conflict in state " in captured.out
+    assert "with terminal c" in captured.out
+    assert "Shift(c, " in captured.out
+    assert "Reduce(B -> d)" in captured.out
+
+
+def test_slr1_reduce_reduce_conflict_detection(capsys):
+    A = NonTerminal("A")
+    B = NonTerminal("B")
+    C = NonTerminal("C")
+
+    a = Terminal("a")
+    b = Terminal("b")
+    c = Terminal("c")
+    d = Terminal("d")
+
+    P = {
+        A: [[a, B, b], [a, C, c], [C, b]],
+        B: [[d]],
+        C: [[d]],
+    }
+
+    cfg = CFG({A, B, C}, {a, b, c, d}, P, A, add_unique_starting_production=True)
+
+    _ = capsys.readouterr()
+    with pytest.raises(AssertionError) as e:
+        _ = cfg.slr1_action
+    captured = capsys.readouterr()
+
+    # Deliberately not asserting the state numbers because that's an implementation detail
+    assert e.value.args[0].startswith("1 Grammar conflict")
+    assert "Reduce/Reduce Conflict in state " in captured.out
+    assert "with terminal b" in captured.out
+    assert "Reduce(B -> d)" in captured.out
+    assert "Reduce(C -> d)" in captured.out

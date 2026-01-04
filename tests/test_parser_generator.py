@@ -40,12 +40,12 @@ def test_action_to_string():
     # This Action table makes no sense, it's just a short one that has all the elements we need
     Action = {
         0: {
-            a: [],
-            b: [LR0_Shift(a, 1)],
+            a: None,
+            b: LR0_Shift(a, 1),
         },
         1: {
-            a: [LR0_Reduce(Production(A, [a, B, b]))],
-            b: [LR0_Accept()],
+            a: LR0_Reduce(Production(A, [a, B, b])),
+            b: LR0_Accept(),
         },
     }
 

@@ -35,14 +35,14 @@ class ParserGenerator:
 
     @staticmethod
     def action_to_string(
-        Action: dict[int, dict[Terminal, list[LR0_Action]]], indent: int = 0
+        Action: dict[int, dict[Terminal, Optional[LR0_Action]]], indent: int = 0
     ) -> str:
         stringified_Action: dict[str, dict[str, str]] = {
             str(i): {
                 f'Terminal("{t}")': (
-                    f"[{', '.join(action.parseable_string() for action in action_list)}]"
+                    f"{action.parseable_string() if action is not None else str(None)}"
                 )
-                for t, action_list in row.items()
+                for t, action in row.items()
             }
             for i, row in Action.items()
         }
