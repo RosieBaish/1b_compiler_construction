@@ -69,6 +69,9 @@ class Production:
             and self.RHS == other.RHS
         )
 
+    def __len__(self) -> int:
+        return len(self.RHS)
+
 
 epsilon = Terminal("ε")
 dollar = Terminal("$")

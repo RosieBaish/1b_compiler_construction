@@ -10,6 +10,46 @@ from common import (
 from typing import Optional, Union
 
 
+class LR0_Item:
+    dot = "⋅"
+
+    def __init__(self, production: Production, dot_location: int):
+        self.production = production
+        self.dot_location = dot_location
+
+        assert self.dot_location <= len(self.production.RHS), (
+            self.production,
+            self.dot_location,
+        )
+
+    def __getitem__(self, n: int) -> Symbol:
+        if n < self.dot_location:
+            return self.production[n]
+        elif n == self.dot_location:
+            return Symbol(LR0_Item.dot)
+        else:
+            return self.production[n - 1]
+
+    def __hash__(self) -> int:
+        return hash((self.production, self.dot_location))
+
+    def __str__(self) -> str:
+        if self.production.RHS == [epsilon]:
+            return f"{self.production.LHS} -> {LR0_Item.dot}"
+        joiner = "" if all(len(str(s)) == 1 for s in self.production.RHS) else " "
+        return f"{self.production.LHS} -> {joiner.join(str(r) for r in self.production.RHS[: self.dot_location] + [LR0_Item.dot] + self.production.RHS[self.dot_location :])}"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, LR0_Item)
+            and self.production == other.production
+            and self.dot_location == other.dot_location
+        )
+
+
 class CFG:
     def __init__(
         self,
@@ -83,6 +123,8 @@ class CFG:
         self._ll1_parse_table: dict[NonTerminal, dict[Terminal, set[Production]]] = {
             n: {t: set() for t in self.T} for n in self.N
         }
+
+        self._lr0_items: Optional[list[LR0_Item]] = None
 
     def __str__(self) -> str:
         all_prods = []
@@ -293,6 +335,22 @@ class CFG:
         assert all([len(r) == row_len for r in row_strings]), row_strings
 
         print(("\n" + "-" * row_len + "\n").join(row_strings))
+
+    @property
+    def lr0_items(self) -> list[LR0_Item]:
+        if self._lr0_items is not None:  # pragma: no cover
+            return self._lr0_items
+
+        self._lr0_items = []
+
+        for nonterminal in self.N:
+            for production in self.P[nonterminal]:
+                if production.RHS == [epsilon]:
+                    self._lr0_items.append(LR0_Item(production, 0))
+                else:
+                    for i in range(len(production.RHS) + 1):
+                        self._lr0_items.append(LR0_Item(production, i))
+        return self._lr0_items
 
 
 def g3_prime() -> CFG:

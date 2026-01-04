@@ -37,6 +37,7 @@ exclude_also = [
 	     "def __getitem__",
 	     "def __hash__",
 	     "def __eq__",
+	     "def __len__",
 
 	     # We don't need to check main functions
 	     "def main",

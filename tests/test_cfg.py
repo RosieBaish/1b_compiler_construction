@@ -386,3 +386,73 @@ def test_add_starting_production():
     S = NonTerminal("S")
     assert cfg.N == {A, B, C, S}
     assert cfg.P[S] == [Production(S, [A])]
+
+
+def test_lr0_items():
+    A = NonTerminal("A")
+    B = NonTerminal("B")
+    C = NonTerminal("C")
+
+    a = Terminal("a")
+    b = Terminal("b")
+    c = Terminal("c")
+
+    P = {
+        A: [[a, b, c]],
+        B: [[A], [epsilon]],
+    }
+
+    cfg = CFG({A, B, C}, {a, b, c}, P, A)
+
+    expected_item_strings = [
+        "A -> ⋅abc",
+        "A -> a⋅bc",
+        "A -> ab⋅c",
+        "A -> abc⋅",
+        "B -> ⋅A",
+        "B -> A⋅",
+        "B -> ⋅",
+    ]
+
+    actual_item_strings = [str(item) for item in cfg.lr0_items]
+
+    for item in expected_item_strings:
+        assert item in actual_item_strings
+    for item in actual_item_strings:
+        assert item in expected_item_strings
+
+
+def test_lr0_items_with_S():
+    A = NonTerminal("A")
+    B = NonTerminal("B")
+    C = NonTerminal("C")
+
+    a = Terminal("a")
+    b = Terminal("b")
+    c = Terminal("c")
+
+    P = {
+        A: [[a, b, c]],
+        B: [[A], [epsilon]],
+    }
+
+    cfg = CFG({A, B, C}, {a, b, c}, P, A, add_unique_starting_production=True)
+
+    expected_item_strings = [
+        "S -> ⋅A",
+        "S -> A⋅",
+        "A -> ⋅abc",
+        "A -> a⋅bc",
+        "A -> ab⋅c",
+        "A -> abc⋅",
+        "B -> ⋅A",
+        "B -> A⋅",
+        "B -> ⋅",
+    ]
+
+    actual_item_strings = [str(item) for item in cfg.lr0_items]
+
+    for item in expected_item_strings:
+        assert item in actual_item_strings
+    for item in actual_item_strings:
+        assert item in expected_item_strings
