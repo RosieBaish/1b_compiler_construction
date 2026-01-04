@@ -1,5 +1,5 @@
 from dfa import DFA
-from nfa import NFA
+from nfa import TypedNFA
 from regex import Regex
 from common import Terminal
 
@@ -26,14 +26,14 @@ class Lexer:
     ):
         self.token_descriptions = token_descriptions
         nfas = [
-            NFA.from_regex(
+            TypedNFA[str, str, Terminal].from_regex(
                 r if isinstance(r, Regex) else Regex.parse(r),
                 set(printable),
-                accept_tag=t.name,
+                accept_tag=t,  # type: ignore # For some reason it can't figure this specific line out
             )
             for (t, r, _) in token_descriptions
         ]
-        self.dfa = DFA.fromNFA(NFA.merge_nfas(nfas))
+        self.dfa: DFA[str, str, Terminal] = DFA.fromNFA(TypedNFA.merge_nfas(nfas))
 
     def lex(self, input_string: str) -> list[Terminal]:
         characters_consumed = 0
@@ -46,16 +46,16 @@ class Lexer:
                     characters_consumed,
                     input_string,
                 )
-            token_name = self.dfa.last_accept_tag
+            token = self.dfa.last_accept_tag
 
             token_actions = next(
-                td[2] for td in self.token_descriptions if td[0].name == token_name
+                td[2] for td in self.token_descriptions if td[0] == token
             )
             if "IGNORE" not in token_actions:
                 if "STORE" in token_actions:
                     tokens.append(
                         Terminal(
-                            token_name,
+                            token.name,
                             input_string[
                                 characters_consumed : (
                                     characters_consumed + self.dfa.num_chars_accepted
@@ -64,7 +64,7 @@ class Lexer:
                         )
                     )
                 else:
-                    tokens.append(Terminal(token_name))
+                    tokens.append(Terminal(token.name))
             characters_consumed += self.dfa.num_chars_accepted
 
         return tokens

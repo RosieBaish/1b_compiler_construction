@@ -17,7 +17,9 @@ class DFA(Generic[StateType, TokenType, TagType]):
         delta: Callable[[StateType, TokenType], StateType],
         q_0: StateType,
         F: set[StateType],
-        tags: dict[StateType, TagType] = {},  # Optional mapping from states to tags
+        tags: dict[
+            StateType, Optional[TagType]
+        ] = {},  # Optional mapping from states to tags
     ):
         self.Q = Q
         self.Sigma = Sigma
@@ -36,6 +38,8 @@ class DFA(Generic[StateType, TokenType, TagType]):
             assert len(self.Q) == len(self.tags)
             for q in self.Q:
                 assert q in self.tags
+                if self.tags[q] is None:
+                    assert q not in self.F, q
 
         self.num_chars_accepted = 0
         self.last_accept_state: Optional[StateType] = None
@@ -125,7 +129,7 @@ class DFA(Generic[StateType, TokenType, TagType]):
             if not S.isdisjoint(nfa.F):
                 F_prime.add(frozenset(S))
 
-        tags_prime: dict[frozenset[str], str] = {}
+        tags_prime: dict[frozenset[str], Optional[TagType]] = {}
         if len(nfa.tags):
             for S in Q_prime:
                 S_list = sorted(
@@ -133,7 +137,7 @@ class DFA(Generic[StateType, TokenType, TagType]):
                     key=lambda x: nfa.state_rankings.index(x),
                 )
                 if S_list == []:
-                    tags_prime[frozenset(S)] = "set()"
+                    tags_prime[frozenset(S)] = None
                 else:
                     tags_prime[frozenset(S)] = nfa.tags[S_list[0]]
 

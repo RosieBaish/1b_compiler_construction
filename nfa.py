@@ -33,7 +33,9 @@ class TypedNFA(Generic[StateType, TokenType, TagType]):
         q_0: StateType,
         F: set[StateType],
         epsilon: TokenType,
-        tags: dict[StateType, TagType] = {},  # Optional mapping from states to tags
+        tags: dict[
+            StateType, Optional[TagType]
+        ] = {},  # Optional mapping from states to tags
         state_rankings: list[
             StateType
         ] = [],  # Priority order of states for when we're in multiple accept states at once
@@ -43,7 +45,7 @@ class TypedNFA(Generic[StateType, TokenType, TagType]):
         self.delta = delta
         self.q_0 = q_0
         self.F = F
-        self.tags: dict[StateType, TagType] = {}
+        self.tags: dict[StateType, Optional[TagType]] = {}
         self.state_rankings: list[StateType] = []
 
         # Check that q_0 and everything in F are valid states.
@@ -63,7 +65,7 @@ class TypedNFA(Generic[StateType, TokenType, TagType]):
         self.epsilon = epsilon
 
     def add_tags(
-        self, tags: dict[StateType, TagType], state_rankings: list[StateType]
+        self, tags: dict[StateType, Optional[TagType]], state_rankings: list[StateType]
     ) -> None:
         # Tags and state_rankings are either both empty, or contains every state
         if len(tags) > 0 or len(state_rankings) > 0:
@@ -71,6 +73,8 @@ class TypedNFA(Generic[StateType, TokenType, TagType]):
             for q in self.Q:
                 assert q in tags
                 assert q in state_rankings
+                if tags[q] is None:
+                    assert q not in self.F, q
         self.tags = tags
         self.state_rankings = state_rankings
 
@@ -143,12 +147,12 @@ class TypedNFA(Generic[StateType, TokenType, TagType]):
 
     @staticmethod
     def from_regex(
-        regex: Regex, Sigma: set[str], accept_tag: Optional[str] = None
+        regex: Regex, Sigma: set[str], accept_tag: Optional[TagType] = None
     ) -> "TypedNFA":
         """Construct an NFA out of the given regex,
         which should be an instance of one of the regex subclasses.
         The constructed regex must have at least 1 accept state to allow recursive constructions."""
-        created_nfa: TypedNFA
+        created_nfa: TypedNFA[str, str, TagType]
         if isinstance(regex, EmptyRegex):
             created_nfa = TypedNFA(
                 {"0", "1"}, Sigma, lambda _q, _c: set(), "0", {"1"}, ""
@@ -276,7 +280,7 @@ class TypedNFA(Generic[StateType, TokenType, TagType]):
         if accept_tag is not None:
             accept_list = list(created_nfa.Q & created_nfa.F)
             reject_list = list(created_nfa.Q - created_nfa.F)
-            tags = {s: accept_tag for s in accept_list} | {s: "" for s in reject_list}
+            tags = {s: accept_tag for s in accept_list} | {s: None for s in reject_list}
             state_order = accept_list + reject_list
             created_nfa.add_tags(tags, state_order)
         return created_nfa
@@ -399,7 +403,7 @@ class TypedNFA(Generic[StateType, TokenType, TagType]):
         Q = {"0"}
         doing_tags = any([len(nfa.tags) > 0 for nfa in nfas])
         if doing_tags:
-            tags = {"0": "0"}
+            tags = {"0": None}
             state_rankings = ["0"]
         else:
             tags = {}
@@ -446,7 +450,7 @@ class NFA(TypedNFA[str, str, str]):
         delta: Callable[[str, str], set[str]],
         q_0: str,
         F: set[str],
-        tags: dict[str, str] = {},  # Optional mapping from states to tags
+        tags: dict[str, Optional[str]] = {},  # Optional mapping from states to tags
         state_rankings: list[
             str
         ] = [],  # Priority order of states for when we're in multiple accept states at once
