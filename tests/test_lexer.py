@@ -1,6 +1,6 @@
 from lexer import Lexer, LexerError
 
-from cfg import Token
+from common import Symbol
 from grammar_reader import Grammar
 
 import pytest
@@ -9,22 +9,22 @@ import pytest
 def test_lexer_notes():
     lexer = Lexer(
         [
-            (Token("IF"), "if", []),
-            (Token("THEN"), "then", []),
-            (Token("IDENT"), "[a-zA-Z]([a-zA-Z0-9])*", ["STORE"]),
-            (Token("INT"), "[0-9]", ["STORE"]),
-            (Token("SKIP"), "[ \t\n]", ["IGNORE"]),
+            (Symbol("IF"), "if", []),
+            (Symbol("THEN"), "then", []),
+            (Symbol("IDENT"), "[a-zA-Z]([a-zA-Z0-9])*", ["STORE"]),
+            (Symbol("INT"), "[0-9]", ["STORE"]),
+            (Symbol("SKIP"), "[ \t\n]", ["IGNORE"]),
         ]
     )
 
-    assert lexer.lex("if") == [Token("IF")]
-    assert lexer.lex("if ") == [Token("IF")]
+    assert lexer.lex("if") == [Symbol("IF")]
+    assert lexer.lex("if ") == [Symbol("IF")]
     assert lexer.lex("if x then") == [
-        Token("IF"),
-        Token("IDENT"),
-        Token("THEN"),
+        Symbol("IF"),
+        Symbol("IDENT"),
+        Symbol("THEN"),
     ]
-    assert lexer.lex("if x then")[1].identical_to(Token("IDENT", "x"))
+    assert lexer.lex("if x then")[1].identical_to(Symbol("IDENT", "x"))
 
     with pytest.raises(LexerError) as le:
         lexer.lex("@")
@@ -64,7 +64,7 @@ Start Symbol: EXPR
 
     lexer = Lexer(g.terminal_triples)
 
-    assert lexer.lex("\n\n\nif") == [Token("IF")]
+    assert lexer.lex("\n\n\nif") == [Symbol("IF")]
 
 
 def test_lexer_slang_prioritise_IF_over_IDENT():
@@ -97,4 +97,4 @@ Start Symbol: EXPR
 
     lexer = Lexer(g.terminal_triples)
 
-    assert lexer.lex("\n\n\nif") == [Token("IF")]
+    assert lexer.lex("\n\n\nif") == [Symbol("IF")]

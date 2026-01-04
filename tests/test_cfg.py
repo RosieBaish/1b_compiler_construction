@@ -1,4 +1,5 @@
-from cfg import CFG, epsilon, g3_prime, NonTerminal, Terminal, Production
+from cfg import CFG, g3_prime
+from common import dollar, epsilon, NonTerminal, Terminal, Production
 
 
 def test_G3_prime_nullable_nonterminals():
@@ -112,7 +113,6 @@ def test_G3_prime_follow():
     plus = Terminal("+")
     times = Terminal("*")
     c_bracket = Terminal(")")
-    dollar = Terminal("$")
 
     # Expected values hand-computed in my notes
     expected_values = {

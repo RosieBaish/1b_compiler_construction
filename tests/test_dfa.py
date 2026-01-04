@@ -1,7 +1,7 @@
 from string import ascii_lowercase
 
 from dfa import DFA
-from cfg import Token
+from common import Symbol
 
 
 def test_empty_dfa():
@@ -170,8 +170,8 @@ def test_notes():
 def test_typed_dfa():
     # This is test_a_star from above, but with a typed DFA
 
-    a = Token("a")
-    b = Token("b")
+    a = Symbol("a")
+    b = Symbol("b")
 
     dfa = DFA(
         {0, 1, -1},

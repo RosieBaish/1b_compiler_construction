@@ -1,4 +1,5 @@
-from cfg import CFG, Terminal, NonTerminal, Symbol, epsilon
+from cfg import CFG
+from common import Terminal, NonTerminal, Symbol, epsilon
 from regex import Regex
 
 from typing import Optional

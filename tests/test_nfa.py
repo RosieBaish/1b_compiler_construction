@@ -2,7 +2,7 @@ from string import ascii_lowercase
 
 from nfa import NFA, TypedNFA
 
-from cfg import Token
+from common import Symbol, epsilon
 import util
 
 
@@ -321,10 +321,8 @@ def test_group_transition_row():
 def test_typed_nfa():
     # This is test_a_star from above, but with a typed NFA
 
-    a = Token("a")
-    b = Token("b")
-
-    epsilon = Token("")
+    a = Symbol("a")
+    b = Symbol("b")
 
     nfa = TypedNFA(
         {0, 1},

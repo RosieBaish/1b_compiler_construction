@@ -1,6 +1,6 @@
 from cfg_parser import Parser
-from cfg import g3_prime, Terminal
-
+from cfg import g3_prime
+from common import Terminal
 
 """
 No great way to test this as the parser doesn't produce a parse tree.

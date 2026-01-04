@@ -1,4 +1,5 @@
-from cfg import CFG, dollar, epsilon, g3_prime, Symbol, NonTerminal, Terminal
+from cfg import CFG, g3_prime
+from common import Symbol, NonTerminal, Terminal, dollar, epsilon
 
 
 class Parser:

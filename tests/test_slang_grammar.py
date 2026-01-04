@@ -1,6 +1,7 @@
 from grammar_reader import Grammar
 
-from cfg import CFG, Token, Terminal
+from cfg import CFG
+from common import Terminal
 from lexer import Lexer
 
 
@@ -77,14 +78,14 @@ if ? = 0 then 17 else 21
     """
 
     expected = [
-        Token("IF"),
-        Token("WHAT"),
-        Token("EQUAL"),
-        Token("INT", "0"),
-        Token("THEN"),
-        Token("INT", "17"),
-        Token("ELSE"),
-        Token("INT", "21"),
+        Terminal("IF"),
+        Terminal("WHAT"),
+        Terminal("EQUAL"),
+        Terminal("INT", "0"),
+        Terminal("THEN"),
+        Terminal("INT", "17"),
+        Terminal("ELSE"),
+        Terminal("INT", "21"),
     ]
 
     actual = lexer.lex(if_slang)

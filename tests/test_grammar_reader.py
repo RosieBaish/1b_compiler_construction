@@ -1,6 +1,7 @@
 from grammar_reader import Grammar
 
-from cfg import CFG, Terminal, NonTerminal, epsilon
+from cfg import CFG
+from common import Terminal, NonTerminal, epsilon
 from regex import Regex
 
 

@@ -1,7 +1,7 @@
 from dfa import DFA
 from nfa import NFA
 from regex import Regex
-from cfg import Token
+from common import Terminal
 
 from string import printable
 from typing import Union
@@ -22,7 +22,7 @@ class LexerError(BaseException):
 
 class Lexer:
     def __init__(
-        self, token_descriptions: list[tuple[Token, Union[str | Regex], list[str]]]
+        self, token_descriptions: list[tuple[Terminal, Union[str | Regex], list[str]]]
     ):
         self.token_descriptions = token_descriptions
         nfas = [
@@ -35,9 +35,9 @@ class Lexer:
         ]
         self.dfa = DFA.fromNFA(NFA.merge_nfas(nfas))
 
-    def lex(self, input_string: str) -> list[Token]:
+    def lex(self, input_string: str) -> list[Terminal]:
         characters_consumed = 0
-        tokens: list[Token] = []
+        tokens: list[Terminal] = []
         while characters_consumed < len(input_string):
             self.dfa.test_string(input_string[characters_consumed:])
             if self.dfa.num_chars_accepted == 0 or self.dfa.last_accept_tag is None:
@@ -54,7 +54,7 @@ class Lexer:
             if "IGNORE" not in token_actions:
                 if "STORE" in token_actions:
                     tokens.append(
-                        Token(
+                        Terminal(
                             token_name,
                             input_string[
                                 characters_consumed : (
@@ -64,7 +64,7 @@ class Lexer:
                         )
                     )
                 else:
-                    tokens.append(Token(token_name))
+                    tokens.append(Terminal(token_name))
             characters_consumed += self.dfa.num_chars_accepted
 
         return tokens
@@ -73,11 +73,11 @@ class Lexer:
 def main() -> None:
     lexer = Lexer(
         [
-            (Token("IF"), "if", []),
-            (Token("THEN"), "then", []),
-            (Token("IDENT"), "[a-zA-Z]([a-zA-Z0-9])*", ["STORE"]),
-            (Token("INT"), "[0-9]", ["STORE"]),
-            (Token("SKIP"), "[ \t\n]", ["IGNORE"]),
+            (Terminal("IF"), "if", []),
+            (Terminal("THEN"), "then", []),
+            (Terminal("IDENT"), "[a-zA-Z]([a-zA-Z0-9])*", ["STORE"]),
+            (Terminal("INT"), "[0-9]", ["STORE"]),
+            (Terminal("SKIP"), "[ \t\n]", ["IGNORE"]),
         ]
     )
     print(lexer.lex("if x then y"))
