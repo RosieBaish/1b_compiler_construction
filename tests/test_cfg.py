@@ -456,3 +456,189 @@ def test_lr0_items_with_S():
         assert item in actual_item_strings
     for item in actual_item_strings:
         assert item in expected_item_strings
+
+
+def test_lr0_dfa_notes():
+    E = NonTerminal("E")
+    T = NonTerminal("T")
+    F = NonTerminal("F")
+
+    ident = Terminal("id")
+    o_bracket = Terminal("(")
+    c_bracket = Terminal(")")
+    plus = Terminal("+")
+    times = Terminal("*")
+
+    P = {
+        E: [[E, plus, T], [T]],
+        T: [[T, times, F], [F]],
+        F: [[ident], [o_bracket, E, c_bracket]],
+    }
+
+    cfg = CFG(
+        {E, T, F},
+        {ident, o_bracket, c_bracket, plus, times},
+        P,
+        E,
+        terminals_order=[o_bracket, ident, c_bracket, plus, times],
+        nonterminals_order=[E, T, F],
+        add_unique_starting_production=True,
+    )
+
+    dfa = cfg.lr0_dfa
+
+    expected_states = [
+        frozenset(
+            {
+                # I0
+                "S -> ⋅E",
+                "E -> ⋅E+T",
+                "E -> ⋅T",
+                "T -> ⋅T*F",
+                "T -> ⋅F",
+                "F -> ⋅ id",
+                "F -> ⋅(E)",
+            }
+        ),
+        frozenset(
+            {
+                # I1
+                "S -> E⋅",
+                "E -> E⋅+T",
+            }
+        ),
+        frozenset(
+            {
+                # I2
+                "E -> T⋅",
+                "T -> T⋅*F",
+            }
+        ),
+        frozenset(
+            {
+                # I3
+                "T -> F⋅",
+            }
+        ),
+        frozenset(
+            {
+                # I4
+                "F -> (⋅E)",
+                "E -> ⋅E+T",
+                "E -> ⋅T",
+                "T -> ⋅T*F",
+                "T -> ⋅F",
+                "F -> ⋅ id",
+                "F -> ⋅(E)",
+            }
+        ),
+        frozenset(
+            {
+                # I5
+                "F -> id ⋅",
+            }
+        ),
+        frozenset(
+            {
+                # I6
+                "E -> E+⋅T",
+                "T -> ⋅T*F",
+                "T -> ⋅F",
+                "F -> ⋅ id",
+                "F -> ⋅(E)",
+            }
+        ),
+        frozenset(
+            {
+                # I7
+                "T -> T*⋅F",
+                "F -> ⋅ id",
+                "F -> ⋅(E)",
+            }
+        ),
+        frozenset(
+            {
+                # I8
+                "F -> (E⋅)",
+                "E -> E⋅+T",
+            }
+        ),
+        frozenset(
+            {
+                # I9
+                "E -> E+T⋅",
+                "T -> T⋅*F",
+            }
+        ),
+        frozenset(
+            {
+                # I10
+                "T -> T*F⋅",
+            }
+        ),
+        frozenset(
+            {
+                # I11
+                "F -> (E)⋅",
+            }
+        ),
+        frozenset(),  # I12 (Not in the notes)
+    ]
+
+    for actual, expected in zip(dfa.state_list, expected_states):
+        assert frozenset({str(item) for item in actual}) == expected
+
+    stringified_state_list = [
+        frozenset({str(item) for item in state}) for state in dfa.state_list
+    ]
+    assert stringified_state_list == expected_states
+
+    def index(state):
+        return dfa.state_list.index(state)
+
+    def printable_index(state):
+        return f"I{index(state):<2}"
+
+    actual_transitions = []
+    for q in dfa.state_list:
+        for c in dfa.Sigma:
+            if (q_prime := dfa.delta(q, c)) != frozenset():
+                actual_transitions.append((index(q), c, index(q_prime)))
+                print(printable_index(q), c, printable_index(q_prime))
+
+    expected_transitions = [
+        (0, E, 1),
+        (0, T, 2),
+        (0, F, 3),
+        (0, o_bracket, 4),
+        (0, ident, 5),
+        # 1
+        (1, plus, 6),
+        # 2
+        (2, times, 7),
+        # 4
+        (4, T, 2),
+        (4, F, 3),
+        (4, o_bracket, 4),
+        (4, ident, 5),
+        (4, E, 8),
+        # 6
+        (6, F, 3),
+        (6, o_bracket, 4),
+        (6, ident, 5),
+        (6, T, 9),
+        # 7
+        (7, o_bracket, 4),
+        (7, ident, 5),
+        (7, F, 10),
+        # 8
+        (8, plus, 6),
+        (8, c_bracket, 11),
+        # 9
+        (9, times, 7),
+    ]
+
+    for transition in actual_transitions:
+        assert transition in expected_transitions
+    for transition in expected_transitions:
+        assert transition in actual_transitions

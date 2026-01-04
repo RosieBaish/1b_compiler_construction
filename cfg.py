@@ -1,3 +1,5 @@
+from dfa import DFA
+from nfa import TypedNFA
 from common import (
     Symbol,
     Terminal,
@@ -21,6 +23,18 @@ class LR0_Item:
             self.production,
             self.dot_location,
         )
+
+    def symbol_after_dot(self) -> Optional[Symbol]:
+        if self.dot_location < len(self.production):
+            return self.production[self.dot_location]
+        else:
+            return None
+
+    def item_after_dot(self) -> "LR0_Item":
+        assert self.dot_location < len(self.production), (
+            "There is no item with the dot moved"
+        )
+        return LR0_Item(self.production, self.dot_location + 1)
 
     def __getitem__(self, n: int) -> Symbol:
         if n < self.dot_location:
@@ -125,6 +139,7 @@ class CFG:
         }
 
         self._lr0_items: Optional[list[LR0_Item]] = None
+        self._lr0_dfa: Optional[DFA] = None
 
     def __str__(self) -> str:
         all_prods = []
@@ -351,6 +366,80 @@ class CFG:
                     for i in range(len(production.RHS) + 1):
                         self._lr0_items.append(LR0_Item(production, i))
         return self._lr0_items
+
+    @property
+    def lr0_dfa(self) -> DFA:
+        if self._lr0_dfa is not None:  # pragma: no cover
+            return self._lr0_dfa
+
+        Q = set(self.lr0_items)
+        Sigma: set[Symbol] = self.N | self.T
+        assert self.starting_prod is not None
+        q0 = LR0_Item(self.starting_prod, 0)
+
+        starting_items_for_nonterminal = {
+            n: [LR0_Item(production, 0) for production in productions]
+            for n, productions in self.P.items()
+        }
+
+        transitions: list[tuple[LR0_Item, Symbol, LR0_Item]] = []
+
+        for item in Q:
+            next_symbol = item.symbol_after_dot()
+            if next_symbol is not None:
+                transitions.append((item, next_symbol, item.item_after_dot()))
+                if isinstance(next_symbol, NonTerminal):
+                    for starting_item in starting_items_for_nonterminal[next_symbol]:
+                        transitions.append((item, epsilon, starting_item))
+
+        transition_dict: dict[LR0_Item, dict[Symbol, set[LR0_Item]]] = {
+            q: {s: set() for s in Sigma | {epsilon}} for q in Q
+        }
+        for q, s, q_prime in transitions:
+            transition_dict[q][s] |= {q_prime}
+
+        nfa: TypedNFA[LR0_Item, Symbol, None] = TypedNFA(
+            Q,
+            Sigma,
+            lambda q, c: transition_dict[q][epsilon]
+            if c == ""
+            else transition_dict[q][c],
+            q0,
+            Q,
+            epsilon,
+        )
+        dfa: DFA[frozenset[LR0_Item], Symbol, None] = DFA.fromNFA(nfa)
+
+        dfa_state_list: list[frozenset[LR0_Item]] = []
+        unsorted_dfa_states = list(dfa.Q)
+
+        dfa_state_list.append(dfa.q_0)
+        unsorted_dfa_states.remove(dfa.q_0)
+
+        unsorted_dfa_states.remove(frozenset())  # We handle this one at the end
+
+        worklist: list[frozenset[LR0_Item]] = [dfa.q_0]
+        while len(unsorted_dfa_states) > 0:
+            assert len(worklist) > 0
+            work_state = worklist[0]
+            worklist = worklist[1:]
+            for symbol in self.nonterminals_order + self.terminals_order:
+                if (dfa_state_prime := dfa.delta(work_state, symbol)) != frozenset():
+                    if dfa_state_prime not in dfa_state_list:
+                        dfa_state_list.append(dfa_state_prime)
+                        unsorted_dfa_states.remove(dfa_state_prime)
+                        worklist.append(dfa_state_prime)
+
+        assert len(unsorted_dfa_states) == 0
+        # Work list might have stuff in, but as we've got all the states already that doesn't matter
+
+        # This is always the last 1 (because it's not in the notes and I didn't want to reorder)
+        dfa_state_list.append(frozenset())
+
+        setattr(dfa, "state_list", dfa_state_list)
+
+        self._lr0_dfa = dfa
+        return self._lr0_dfa
 
 
 def g3_prime() -> CFG:
