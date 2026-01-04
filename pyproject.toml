@@ -41,5 +41,5 @@ exclude_also = [
 
 	     # We don't need to check main functions
 	     "def main",
-
+	     "if __name__ == '__main__':",
 	     ]

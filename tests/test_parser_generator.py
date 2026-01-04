@@ -84,3 +84,20 @@ def test_goto_to_string():
     print(python_source)
 
     assert eval(python_source) == Goto
+
+
+def test_regexes_to_string():
+    a = Terminal("a")
+    b = Terminal("b")
+
+    Regexes = [(a, "a", ["STORE"]), (b, "\n\t\\", ["IGNORE"])]
+
+    python_source = ParserGenerator.regexes_to_string(Regexes)
+
+    assignment = "Regexes = "
+    assert python_source.startswith(assignment)
+    python_source = python_source[len(assignment) :]
+
+    print(python_source)
+
+    assert eval(python_source) == Regexes

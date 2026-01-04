@@ -15,3 +15,9 @@ uv run pytest --cov=. tests/
 uv run main.py --parser-generator
 
 uv run pytest --cov=. --cov-append tests_generated_code/
+
+echo "=============================================================================================================="
+
+uv run generated_g2_parser.py --source "x + y"
+
+echo "=============================================================================================================="

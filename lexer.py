@@ -4,7 +4,6 @@ from regex import Regex
 from common import Terminal
 
 from string import printable
-from typing import Union
 
 
 class LexerError(BaseException):
@@ -21,13 +20,11 @@ class LexerError(BaseException):
 
 
 class Lexer:
-    def __init__(
-        self, token_descriptions: list[tuple[Terminal, Union[str | Regex], list[str]]]
-    ):
+    def __init__(self, token_descriptions: list[tuple[Terminal, str, list[str]]]):
         self.token_descriptions = token_descriptions
         nfas = [
             TypedNFA[str, str, Terminal].from_regex(
-                r if isinstance(r, Regex) else Regex.parse(r),
+                Regex.parse(r),
                 set(printable),
                 accept_tag=t,  # type: ignore # For some reason it can't figure this specific line out
             )

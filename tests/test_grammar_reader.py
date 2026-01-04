@@ -2,7 +2,6 @@ from grammar_reader import Grammar
 
 from cfg import CFG
 from common import Terminal, NonTerminal, epsilon
-from regex import Regex
 
 
 def test_basic():
@@ -31,7 +30,7 @@ def test_basic():
 
     assert g.name == "Basic 1"
     assert g.terminals == [a]
-    assert g.terminal_triples == [(a, Regex.parse("a"), [])]
+    assert g.terminal_triples == [(a, "a", [])]
     assert g.nonterminals == [A]
     assert g.productions == {A: [[a]]}
     assert g.start_symbol == A
@@ -66,8 +65,8 @@ def test_store():
     assert g.name == "Basic 2"
     assert g.terminals == [a, b]
     assert g.terminal_triples == [
-        (a, Regex.parse("a"), []),
-        (b, Regex.parse("b"), ["STORE"]),
+        (a, "a", []),
+        (b, "b", ["STORE"]),
     ]
     assert g.nonterminals == [A]
     assert g.productions == {A: [[a]]}
@@ -104,8 +103,8 @@ def test_multiple_productions_per_nonterminal():
     assert g.name == "Basic 3"
     assert g.terminals == [a, b]
     assert g.terminal_triples == [
-        (a, Regex.parse("a"), []),
-        (b, Regex.parse("b"), ["STORE"]),
+        (a, "a", []),
+        (b, "b", ["STORE"]),
     ]
     assert g.nonterminals == [A]
     assert g.productions == {A: [[a], [b]]}
@@ -145,8 +144,8 @@ def test_multiple_nonterminals():
     assert g.name == "Basic 4"
     assert g.terminals == [a, b]
     assert g.terminal_triples == [
-        (a, Regex.parse("a"), []),
-        (b, Regex.parse("b"), ["STORE"]),
+        (a, "a", []),
+        (b, "b", ["STORE"]),
     ]
     assert g.nonterminals == [A, B]
     assert g.productions == {A: [[a], [B]], B: [[b]]}
@@ -183,8 +182,8 @@ def test_epsilon():
     assert g.name == "Basic 5"
     assert g.terminals == [a, b]
     assert g.terminal_triples == [
-        (a, Regex.parse("a"), []),
-        (b, Regex.parse("b"), ["STORE"]),
+        (a, "a", []),
+        (b, "b", ["STORE"]),
     ]
     assert g.nonterminals == [A]
     assert g.productions == {A: [[a], [epsilon]]}
@@ -221,8 +220,8 @@ def test_ignore():
     assert g.name == "Basic 6"
     assert g.terminals == [a, b]
     assert g.terminal_triples == [
-        (a, Regex.parse("a"), []),
-        (b, Regex.parse("b"), ["IGNORE"]),
+        (a, "a", []),
+        (b, "b", ["IGNORE"]),
     ]
     assert g.nonterminals == [A]
     assert g.productions == {A: [[a], [epsilon]]}
@@ -263,8 +262,8 @@ def test_read_from_file(tmp_path):
     assert g.name == "Basic 7"
     assert g.terminals == [a, b]
     assert g.terminal_triples == [
-        (a, Regex.parse("a"), []),
-        (b, Regex.parse("b"), ["STORE"]),
+        (a, "a", []),
+        (b, "b", ["STORE"]),
     ]
     assert g.nonterminals == [A]
     assert g.productions == {A: [[a], [epsilon]]}
@@ -308,8 +307,8 @@ def test_newline():
     assert g.name == "Basic 8"
     assert g.terminals == [a, b]
     assert g.terminal_triples == [
-        (a, Regex.parse("\n"), []),
-        (b, Regex.parse("b"), ["IGNORE"]),
+        (a, "\n", []),
+        (b, "b", ["IGNORE"]),
     ]
     assert g.nonterminals == [A]
     assert g.productions == {A: [[a], [epsilon]]}
@@ -346,8 +345,8 @@ def test_production_contains_token_not_token_name():
     assert g.name == "Basic 8"
     assert g.terminals == [a, b]
     assert g.terminal_triples == [
-        (a, Regex.parse("foo"), []),
-        (b, Regex.parse("b"), ["IGNORE"]),
+        (a, "foo", []),
+        (b, "b", ["IGNORE"]),
     ]
     assert g.nonterminals == [A]
     assert g.productions == {A: [[a], [epsilon]]}

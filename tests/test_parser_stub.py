@@ -1,6 +1,7 @@
-from parser_stub import parse_internal, ParseError
+from parser_stub import parse_internal, ParseError, lex_internal
 
-from cfg import CFG, NonTerminal, Terminal, dollar
+from cfg import CFG
+from common import NonTerminal, Terminal, dollar
 
 import pytest
 
@@ -49,3 +50,22 @@ def test_g2_unexpected_token():
         parse_internal(cfg.slr1_action, cfg.slr1_goto, [ident, times, plus, dollar])
     assert e.value.message == "Unexpected token, unable to proceed"
     assert e.value.source_index == 2
+
+
+def test_g2_lexer():
+    Regexes = [
+        (Terminal("WHITESPACE"), "([ \\n\\t])*", ["IGNORE"]),
+        (Terminal("PLUS"), "+", []),
+        (Terminal("TIMES"), "*", []),
+        (Terminal("O_BRACKET"), "\\(", []),
+        (Terminal("C_BRACKET"), "\\)", []),
+        (Terminal("ID"), "[a-zA-Z]([a-zA-Z0-9_])*", ["STORE"]),
+    ]
+
+    expected = [Terminal("ID", "x"), Terminal("TIMES"), Terminal("ID", "y"), dollar]
+    actual = lex_internal(Regexes, "x * y")
+
+    print(actual)
+    assert len(expected) == len(actual)
+    for e, a in zip(expected, actual):
+        assert e.identical_to(a)

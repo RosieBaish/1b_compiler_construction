@@ -50,7 +50,7 @@ class Grammar:
         self.add_starting_production = add_starting_production
 
         self.name: str
-        self.terminal_triples: list[tuple[Terminal, Regex, list[str]]] = []
+        self.terminal_triples: list[tuple[Terminal, str, list[str]]] = []
         self.nonterminals: list[NonTerminal] = []
         self.productions: dict[NonTerminal, list[list[Symbol]]] = {}
         self.start_symbol: NonTerminal
@@ -68,6 +68,8 @@ class Grammar:
         grammar_colon = "Grammar: "
         assert lines[0].startswith(grammar_colon)
         self.name = lines[0][len(grammar_colon) :]
+
+        terminal_regexes: list[tuple[Regex, Terminal]] = []
 
         assert lines[1] == "Terminals Start"
         line_num = 2
@@ -100,8 +102,9 @@ class Grammar:
             rest = rest.replace(backslash + "t", "\t")
 
             regex = Regex.parse(rest)
-
-            self.terminal_triples.append((Terminal(terminal_name), regex, actions))
+            terminal = Terminal(terminal_name)
+            self.terminal_triples.append((terminal, rest, actions))
+            terminal_regexes.append((regex, terminal))
             line_num += 1
         assert lines[line_num] == terminals_end
         line_num += 1
@@ -130,7 +133,7 @@ class Grammar:
                     symbol_list.append(t)
                 else:
                     found = False
-                    for t, r, _ in self.terminal_triples:
+                    for r, t in terminal_regexes:
                         if r.test_string(symbol):
                             symbol_list.append(t)
                             found = True

@@ -1,4 +1,22 @@
-from common import Terminal, NonTerminal, LR0_Action, LR0_Shift, LR0_Reduce, LR0_Accept
+from common import (
+    Terminal,
+    NonTerminal,
+    LR0_Action,
+    LR0_Shift,
+    LR0_Reduce,
+    LR0_Accept,
+    dollar,
+)
+from lexer import Lexer
+
+
+def lex_internal(
+    Regexes: list[tuple[Terminal, str, list[str]]], source: str
+) -> list[Terminal]:
+    # I don't particularly want to be importing the entire Lexer implementation here
+    # But it gets it working for now
+    lexer = Lexer(Regexes)
+    return lexer.lex(source) + [dollar]
 
 
 class ParseError(Exception):

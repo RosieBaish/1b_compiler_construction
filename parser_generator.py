@@ -74,6 +74,21 @@ class ParserGenerator:
             + "\n\n"
         )
 
+    @staticmethod
+    def regexes_to_string(
+        Regexes: list[tuple[Terminal, str, list[str]]], indent: int = 0
+    ) -> str:
+        regex_string_list: list[str] = []
+        for t, r, actions in Regexes:
+            escaped_r = (
+                r.replace("\\", "\\\\").replace("\n", "\\n").replace("\t", "\\t")
+            )
+            regex_string = f'(Terminal("{t.name}"), "{escaped_r}", ['
+            regex_string += ", ".join(f'"{action}"' for action in actions)
+            regex_string += "]),\n"
+            regex_string_list.append(regex_string)
+        return "Regexes = [\n" + "".join(regex_string_list) + "]\n\n"
+
     def generate(
         self,
     ) -> None:  # pragma: no cover, This is tested by testing the generated parsers
@@ -91,10 +106,37 @@ class ParserGenerator:
                 f.write(parser_stub.read())
             f.write(ParserGenerator.action_to_string(self.cfg.slr1_action))
             f.write(ParserGenerator.goto_to_string(self.cfg.slr1_goto))
-            f.write("""
+            f.write(ParserGenerator.regexes_to_string(self.g.terminal_triples))
+            f.write(f"""
+
+def lex(source: str) -> list[Terminal]:
+    return lex_internal(Regexes, source)
 
 def parse(source: list[Terminal]) -> str:
     return parse_internal(Action, Goto, source)
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        prog="{self.g.name} Parser",
+        description="An automatically generated parser for the {self.g.name} language",
+    )
+
+    parser.add_argument("filename", nargs='?')
+    parser.add_argument("--source", action="store")
+
+    args = parser.parse_args()
+
+    if args.source:
+            print(parse(lex(args.source)))
+    else:
+        if not args.filename:
+            parser.print_help()
+            exit()
+        with open(args.filename, "r", encoding="utf-8") as f:
+            print(parse(lex(f.read())))
+
+if __name__ == '__main__':
+    main()
 """)
 
 

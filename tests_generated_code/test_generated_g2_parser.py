@@ -1,6 +1,6 @@
-from generated_g2_parser import parse, ParseError
+from generated_g2_parser import parse, ParseError, lex
 
-from common import Terminal
+from common import Terminal, dollar
 
 import pytest
 
@@ -18,3 +18,13 @@ def test_parse_unexpected_token():
         parse([Terminal("ID"), Terminal("TIMES"), Terminal("PLUS"), Terminal("$")])
     assert e.value.message == "Unexpected token, unable to proceed"
     assert e.value.source_index == 2
+
+
+def test_lexer():
+    expected = [Terminal("ID", "x"), Terminal("TIMES"), Terminal("ID", "y"), dollar]
+    actual = lex("x * y")
+
+    print(actual)
+    assert len(expected) == len(actual)
+    for e, a in zip(expected, actual):
+        assert e.identical_to(a)
