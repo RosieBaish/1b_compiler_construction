@@ -4,6 +4,10 @@ from common import (
     Symbol,
     Terminal,
     NonTerminal,
+    LR0_Action,
+    LR0_Shift,
+    LR0_Reduce,
+    LR0_Accept,
     Production,
     epsilon,
     dollar,
@@ -23,6 +27,17 @@ class LR0_Item:
             self.production,
             self.dot_location,
         )
+
+    @property
+    def actions(self) -> list[LR0_Action]:
+        # Using list rather than optional to make it easy to combine later
+        sad = self.symbol_after_dot()
+        if sad is None:
+            return [LR0_Reduce(self.production)]
+        elif isinstance(sad, Terminal):
+            return [LR0_Shift(sad)]
+        else:
+            return []
 
     def symbol_after_dot(self) -> Optional[Symbol]:
         if self.dot_location < len(self.production):
@@ -440,6 +455,99 @@ class CFG:
 
         self._lr0_dfa = dfa
         return self._lr0_dfa
+
+    @property
+    def slr1_action(self) -> dict[int, dict[Terminal, list[LR0_Action]]]:
+        dfa = self.lr0_dfa
+        assert hasattr(dfa, "state_list")
+        states: list[frozenset[LR0_Item]] = dfa.state_list
+
+        action_table: dict[int, dict[Terminal, list[LR0_Action]]] = {
+            i: {t: [] for t in self.T | {dollar}} for i in range(len(states))
+        }
+
+        for i, state in enumerate(states):
+            actions: list[LR0_Action] = []
+            for item in state:
+                actions.extend(item.actions)
+            for action in actions:
+                if isinstance(action, LR0_Shift):
+                    new_action = LR0_Shift(
+                        action.t, states.index(dfa.delta(state, action.t))
+                    )
+                    action_table[i][action.t].append(new_action)
+                else:
+                    assert isinstance(action, LR0_Reduce), action
+                    if action.prod == self.starting_prod:
+                        action_table[i][dollar].append(LR0_Accept())
+                        continue
+                    for t in self.follow[action.prod.LHS]:
+                        action_table[i][t].append(action)
+
+        return action_table
+
+    def print_slr1_action(self) -> None:  # pragma: no cover
+        rows: list[list[str]] = []
+        rows.append([""] + [str(t) for t in self.terminals_order + ["$"]])
+        longest_action = max([len(t) for t in rows[0]])
+
+        for i in range(len(self.lr0_dfa.Q)):
+            row = [str(i)]
+            for t in self.terminals_order + [dollar]:
+                actions = self.slr1_action[i][t]
+                action_strings = [str(a) for a in actions]
+                if len(actions) == 0:
+                    row.append("")
+                elif len(actions) == 1:
+                    row.append(action_strings[0])
+                else:
+                    row.append(f"{{{', '.join(action_strings)}}}")
+            longest_action = max(longest_action, max([len(a) for a in row]))
+            rows.append(row)
+        row_strings = [
+            "|".join([f" {s:{longest_action}} " for s in row]) for row in rows
+        ]
+        row_len = len(row_strings[0])
+        assert all([len(r) == row_len for r in row_strings]), row_strings
+
+        print(("\n" + "-" * row_len + "\n").join(row_strings))
+
+    @property
+    def slr1_goto(self) -> dict[int, dict[NonTerminal, Optional[int]]]:
+        dfa = self.lr0_dfa
+        assert hasattr(dfa, "state_list")
+
+        goto_table: dict[int, dict[NonTerminal, Optional[int]]] = {
+            i: {n: None for n in self.N} for i in range(len(dfa.state_list))
+        }
+
+        for i, state in enumerate(dfa.state_list):
+            for n in self.N:
+                if (q_prime := dfa.delta(state, n)) != frozenset():
+                    goto_table[i][n] = dfa.state_list.index(q_prime)
+
+        return goto_table
+
+    def print_slr1_goto(self) -> None:  # pragma: no cover
+        rows: list[list[str]] = []
+        rows.append([""] + [str(n) for n in self.nonterminals_order])
+        longest_goto = max([len(n) for n in rows[0]])
+
+        for i in range(len(self.lr0_dfa.Q)):
+            row = [str(i)]
+            for n in self.nonterminals_order:
+                goto = self.slr1_goto[i][n]
+                if goto is None:
+                    row.append("")
+                else:
+                    row.append(str(goto))
+            longest_goto = max(longest_goto, max([len(g) for g in row]))
+            rows.append(row)
+        row_strings = ["|".join([f" {s:{longest_goto}} " for s in row]) for row in rows]
+        row_len = len(row_strings[0])
+        assert all([len(r) == row_len for r in row_strings]), row_strings
+
+        print(("\n" + "-" * row_len + "\n").join(row_strings))
 
 
 def g3_prime() -> CFG:

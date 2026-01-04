@@ -1,5 +1,14 @@
 from cfg import CFG, g3_prime
-from common import dollar, epsilon, NonTerminal, Terminal, Production
+from common import (
+    dollar,
+    epsilon,
+    NonTerminal,
+    Terminal,
+    Production,
+    LR0_Accept,
+    LR0_Shift,
+    LR0_Reduce,
+)
 
 
 def test_G3_prime_nullable_nonterminals():
@@ -642,3 +651,117 @@ def test_lr0_dfa_notes():
         assert transition in expected_transitions
     for transition in expected_transitions:
         assert transition in actual_transitions
+
+    expected_action = [
+        {
+            # I0
+            ident: LR0_Shift(ident, 5),
+            o_bracket: LR0_Shift(o_bracket, 4),
+        },
+        {
+            # I1
+            plus: LR0_Shift(plus, 6),
+            dollar: LR0_Accept(),
+        },
+        {
+            # I2
+            plus: LR0_Reduce(Production(E, [T])),
+            times: LR0_Shift(times, 7),
+            c_bracket: LR0_Reduce(Production(E, [T])),
+            dollar: LR0_Reduce(Production(E, [T])),
+        },
+        {
+            # I3
+            plus: LR0_Reduce(Production(T, [F])),
+            times: LR0_Reduce(Production(T, [F])),
+            c_bracket: LR0_Reduce(Production(T, [F])),
+            dollar: LR0_Reduce(Production(T, [F])),
+        },
+        {
+            # I4
+            ident: LR0_Shift(ident, 5),
+            o_bracket: LR0_Shift(o_bracket, 4),
+        },
+        {
+            # I5
+            plus: LR0_Reduce(Production(F, [ident])),
+            times: LR0_Reduce(Production(F, [ident])),
+            c_bracket: LR0_Reduce(Production(F, [ident])),
+            dollar: LR0_Reduce(Production(F, [ident])),
+        },
+        {
+            # I6
+            ident: LR0_Shift(ident, 5),
+            o_bracket: LR0_Shift(o_bracket, 4),
+        },
+        {
+            # I7
+            ident: LR0_Shift(ident, 5),
+            o_bracket: LR0_Shift(o_bracket, 4),
+        },
+        {
+            # I8
+            plus: LR0_Shift(plus, 6),
+            c_bracket: LR0_Shift(c_bracket, 11),
+        },
+        {
+            # I9
+            plus: LR0_Reduce(Production(E, [E, plus, T])),
+            times: LR0_Shift(times, 7),
+            c_bracket: LR0_Reduce(Production(E, [E, plus, T])),
+            dollar: LR0_Reduce(Production(E, [E, plus, T])),
+        },
+        {
+            # I10
+            plus: LR0_Reduce(Production(T, [T, times, F])),
+            times: LR0_Reduce(Production(T, [T, times, F])),
+            c_bracket: LR0_Reduce(Production(T, [T, times, F])),
+            dollar: LR0_Reduce(Production(T, [T, times, F])),
+        },
+        {
+            # I11
+            plus: LR0_Reduce(Production(F, [o_bracket, E, c_bracket])),
+            times: LR0_Reduce(Production(F, [o_bracket, E, c_bracket])),
+            c_bracket: LR0_Reduce(Production(F, [o_bracket, E, c_bracket])),
+            dollar: LR0_Reduce(Production(F, [o_bracket, E, c_bracket])),
+        },
+        set(),  # I12 is failed state, also not in notes
+    ]
+
+    expected_goto = [
+        {E: 1, T: 2, F: 3},  # I0
+        set(),  # I1
+        set(),  # I2
+        set(),  # I3
+        {E: 8, T: 2, F: 3},  # I4
+        set(),  # I5
+        {T: 9, F: 3},  # I6
+        {F: 10},  # I7
+        set(),  # I8
+        set(),  # I9
+        set(),  # I10
+        set(),  # I11
+        set(),  # I12
+        set(),  # I13
+    ]
+
+    cfg.print_slr1_action()
+    print()
+    cfg.print_slr1_goto()
+    print()
+    print(cfg.slr1_goto)
+
+    for i in range(len(expected_states)):
+        for t in cfg.terminals_order + [dollar]:
+            if t in expected_action[i]:
+                assert cfg.slr1_action[i][t] == [expected_action[i][t]]
+            else:
+                # Actual table uses the empty list, I ommitted it for clarity above
+                assert cfg.slr1_action[i][t] == []
+
+        for n in cfg.nonterminals_order:
+            if n in expected_goto[i]:
+                assert cfg.slr1_goto[i][n] == expected_goto[i][n]
+            else:
+                # Actual table uses the None, I ommitted it for clarity above
+                assert cfg.slr1_goto[i][n] is None, (i, n)
