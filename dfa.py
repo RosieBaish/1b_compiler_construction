@@ -2,7 +2,7 @@ from collections.abc import Callable
 from string import ascii_lowercase
 from typing import Generic, Optional, TypeVar, Union
 
-from nfa import NFA
+from nfa import TypedNFA
 
 StateType = TypeVar("StateType")
 TokenType = TypeVar("TokenType")
@@ -81,7 +81,7 @@ class DFA(Generic[StateType, TokenType, TagType]):
         return q in self.F
 
     @staticmethod
-    def fromNFA(nfa: NFA) -> "DFA":
+    def fromNFA(nfa: TypedNFA) -> "DFA":
         def epsilon_closure(
             s: set[str], delta: Callable[[str, str], set[str]]
         ) -> frozenset[str]:

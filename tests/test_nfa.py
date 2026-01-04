@@ -1,6 +1,8 @@
 from string import ascii_lowercase
 
-from nfa import NFA
+from nfa import NFA, TypedNFA
+
+from cfg import Token
 import util
 
 
@@ -314,3 +316,28 @@ def test_group_transition_row():
         assert set1 == set2
         assert string1 == util.set_to_range_string(set2)
         assert states1 == states2
+
+
+def test_typed_nfa():
+    # This is test_a_star from above, but with a typed NFA
+
+    a = Token("a")
+    b = Token("b")
+
+    epsilon = Token("")
+
+    nfa = TypedNFA(
+        {0, 1},
+        {a, b},
+        lambda q, c: {1} if q in {0, 1} and c in {a, epsilon} else set(),
+        0,
+        {1},
+        epsilon,
+    )
+
+    assert nfa.test_token_list([])
+    assert nfa.test_token_list([a])
+    assert not nfa.test_token_list([b])
+    assert nfa.test_token_list([a, a])
+    assert nfa.test_token_list([a, a, a, a, a, a, a])
+    assert not nfa.test_token_list([a, a, b])

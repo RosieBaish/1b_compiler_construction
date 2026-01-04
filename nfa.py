@@ -2,7 +2,7 @@ from collections.abc import Callable
 from string import ascii_lowercase
 import util
 
-from typing import Optional
+from typing import Generic, Optional, TypeVar
 
 import matplotlib.pyplot as plt
 import networkx as nx  # type: ignore
@@ -19,17 +19,23 @@ from regex import (
 )
 
 
-class NFA:
+StateType = TypeVar("StateType")
+TokenType = TypeVar("TokenType")
+TagType = TypeVar("TagType")
+
+
+class TypedNFA(Generic[StateType, TokenType, TagType]):
     def __init__(
         self,
-        Q: set[str],  # WLOG, just say states are strings
-        Sigma: set[str],
-        delta: Callable[[str, str], set[str]],
-        q_0: str,
-        F: set[str],
-        tags: dict[str, str] = {},  # Optional mapping from states to tags
+        Q: set[StateType],
+        Sigma: set[TokenType],
+        delta: Callable[[StateType, TokenType], set[StateType]],
+        q_0: StateType,
+        F: set[StateType],
+        epsilon: TokenType,
+        tags: dict[StateType, TagType] = {},  # Optional mapping from states to tags
         state_rankings: list[
-            str
+            StateType
         ] = [],  # Priority order of states for when we're in multiple accept states at once
     ):
         self.Q = Q
@@ -37,8 +43,8 @@ class NFA:
         self.delta = delta
         self.q_0 = q_0
         self.F = F
-        self.tags: dict[str, str] = {}
-        self.state_rankings: list[str] = []
+        self.tags: dict[StateType, TagType] = {}
+        self.state_rankings: list[StateType] = []
 
         # Check that q_0 and everything in F are valid states.
         assert self.q_0 in self.Q, (self.q_0, self.Q)
@@ -47,16 +53,18 @@ class NFA:
 
         # Check that everything in Sigma is a character not a string
         assert isinstance(Sigma, set)
-        for c in self.Sigma:
-            assert len(c) == 1, c
 
         self.add_tags(tags, state_rankings)
 
         self.num_chars_accepted = 0
-        self.last_accept_state: Optional[str] = None
-        self.last_accept_tag: Optional[str] = None
+        self.last_accept_state: Optional[StateType] = None
+        self.last_accept_tag: Optional[TagType] = None
 
-    def add_tags(self, tags: dict[str, str], state_rankings: list[str]) -> None:
+        self.epsilon = epsilon
+
+    def add_tags(
+        self, tags: dict[StateType, TagType], state_rankings: list[StateType]
+    ) -> None:
         # Tags and state_rankings are either both empty, or contains every state
         if len(tags) > 0 or len(state_rankings) > 0:
             assert len(self.Q) == len(tags) == len(state_rankings)
@@ -66,12 +74,14 @@ class NFA:
         self.tags = tags
         self.state_rankings = state_rankings
 
-    def epsilon_close(self, states: set[str]) -> set[str]:
-        closure: set[str] = states.copy()  # Everything can epsilon transition to itself
+    def epsilon_close(self, states: set[StateType]) -> set[StateType]:
+        closure: set[StateType] = (
+            states.copy()
+        )  # Everything can epsilon transition to itself
         work_list = list(states)
         while len(work_list):
             q = work_list[0]
-            next_states = list(self.delta(q, ""))
+            next_states = list(self.delta(q, self.epsilon))
             for q1 in next_states:
                 if q1 not in closure:
                     closure.add(q1)
@@ -80,14 +90,24 @@ class NFA:
         return closure
 
     def test_string(self, string: str) -> bool:
-        current_states = self.epsilon_close(set(self.q_0))
-        next_states: set[str]
+        """Special Case of test_token_list for when TokenType is string
+        Lets you do test_string("abc") as a shorthand for test_tokenlist(["a", "b", "c"])
+        """
+        assert isinstance(self.epsilon, str), (
+            "Can only call test_string if your tokens are strings"
+        )
+        # Given that our TokenType == str this is valid, by mypy doesn't know that
+        return self.test_token_list([c for c in string])  # type: ignore
+
+    def test_token_list(self, token_list: list[TokenType]) -> bool:
+        current_states = self.epsilon_close({self.q_0})
+        next_states: set[StateType]
 
         num_chars_consumed = 0  # Running total
         num_chars_accepted = 0
-        last_accept_states: set[str] = current_states.intersection(self.F)
+        last_accept_states: set[StateType] = current_states.intersection(self.F)
 
-        for c in string:
+        for c in token_list:
             assert c in self.Sigma, (c, self.Sigma)
 
             next_states = set()
@@ -124,36 +144,45 @@ class NFA:
     @staticmethod
     def from_regex(
         regex: Regex, Sigma: set[str], accept_tag: Optional[str] = None
-    ) -> "NFA":
+    ) -> "TypedNFA":
         """Construct an NFA out of the given regex,
         which should be an instance of one of the regex subclasses.
         The constructed regex must have at least 1 accept state to allow recursive constructions."""
-        created_nfa: NFA
+        created_nfa: TypedNFA
         if isinstance(regex, EmptyRegex):
-            created_nfa = NFA({"0", "1"}, Sigma, lambda _q, _c: set(), "0", {"1"})
+            created_nfa = TypedNFA(
+                {"0", "1"}, Sigma, lambda _q, _c: set(), "0", {"1"}, ""
+            )
         elif isinstance(regex, EpsilonRegex):
-            created_nfa = NFA(
-                {"0", "1"}, Sigma, lambda _q, c: {"1"} if c == "" else set(), "0", {"1"}
+            created_nfa = TypedNFA(
+                {"0", "1"},
+                Sigma,
+                lambda _q, c: {"1"} if c == "" else set(),
+                "0",
+                {"1"},
+                "",
             )
         elif isinstance(regex, CharacterRegex):
-            created_nfa = NFA(
+            created_nfa = TypedNFA(
                 {"0", "1"},
                 Sigma,
                 lambda q, c: {"1"} if c == regex.character and q == "0" else set(),
                 "0",
                 {"1"},
+                "",
             )
         elif isinstance(regex, RangeRegex):
-            created_nfa = NFA(
+            created_nfa = TypedNFA(
                 {"0", "1"},
                 Sigma,
                 lambda q, c: {"1"} if c in regex.characters and q == "0" else set(),
                 "0",
                 {"1"},
+                "",
             )
         elif isinstance(regex, OrRegex):
-            nfa1 = NFA.from_regex(regex.r1, Sigma)
-            nfa2 = NFA.from_regex(regex.r2, Sigma)
+            nfa1 = TypedNFA.from_regex(regex.r1, Sigma)
+            nfa2 = TypedNFA.from_regex(regex.r2, Sigma)
             assert len(nfa1.F) > 0
             assert len(nfa2.F) > 0
             Q = {"0", "1"}
@@ -183,12 +212,12 @@ class NFA:
                     return response
                 return set()
 
-            created_nfa = NFA(Q, Sigma, transition_function, "0", {"1"})
+            created_nfa = TypedNFA(Q, Sigma, transition_function, "0", {"1"}, "")
         elif isinstance(regex, ConcatenationRegex):
             # The construction here doesn't epsilon, but it's easier to just stick them in here
             # rather than try to manipulate the internal states.
-            nfa1 = NFA.from_regex(regex.r1, Sigma)
-            nfa2 = NFA.from_regex(regex.r2, Sigma)
+            nfa1 = TypedNFA.from_regex(regex.r1, Sigma)
+            nfa2 = TypedNFA.from_regex(regex.r2, Sigma)
             assert len(nfa1.F) > 0
             assert len(nfa2.F) > 0
             Q = {"0", "1"}
@@ -218,9 +247,9 @@ class NFA:
                     return response
                 return set()
 
-            created_nfa = NFA(Q, Sigma, transition_function, "0", {"1"})
+            created_nfa = TypedNFA(Q, Sigma, transition_function, "0", {"1"}, "")
         elif isinstance(regex, StarRegex):
-            nfa = NFA.from_regex(regex.r, Sigma)
+            nfa = TypedNFA.from_regex(regex.r, Sigma)
             assert len(nfa.F) > 0
             Q = {"0", "1"}
             for state in nfa.Q:
@@ -239,7 +268,7 @@ class NFA:
                     return response
                 return set()
 
-            created_nfa = NFA(Q, Sigma, transition_function, "0", {"1"})
+            created_nfa = TypedNFA(Q, Sigma, transition_function, "0", {"1"}, "")
         else:
             assert isinstance(regex, Regex), regex
             assert False, "Regex is an abstract base class"
@@ -252,11 +281,13 @@ class NFA:
             created_nfa.add_tags(tags, state_order)
         return created_nfa
 
-    def get_transition_function_as_lookup(self) -> dict[str, dict[str, set[str]]]:
-        delta_prime: dict[str, dict[str, set[str]]] = {}
+    def get_transition_function_as_lookup(
+        self,
+    ) -> dict[StateType, dict[TokenType, set[StateType]]]:
+        delta_prime: dict[StateType, dict[TokenType, set[StateType]]] = {}
         for q in self.Q:
             delta_prime[q] = {}
-            for c in self.Sigma | {""}:
+            for c in self.Sigma | {self.epsilon}:
                 delta_prime[q][c] = self.delta(q, c)
         return delta_prime
 
@@ -293,7 +324,7 @@ class NFA:
     def plot(self) -> None:  # pragma: no cover
         G = nx.DiGraph()
 
-        Q_list = sorted(list(self.Q))
+        Q_list = sorted(list(str(q) for q in self.Q))
         G.add_nodes_from(Q_list)
 
         edges: list[tuple[str, str]] = []
@@ -302,11 +333,17 @@ class NFA:
         delta_prime = self.get_transition_function_as_lookup()
 
         for q, transition_row in delta_prime.items():
-            grouped_transition_row = NFA.group_transition_row(transition_row)
+            stringified_q = str(q)
+            stringified_transition_row = {
+                str(k): {str(v1) for v1 in v} for (k, v) in transition_row.items()
+            }
+            grouped_transition_row = TypedNFA.group_transition_row(
+                stringified_transition_row
+            )
             for _, char_string, states in grouped_transition_row:
                 for state in states:
-                    edges.append((q, state))
-                    edge_labels[(q, state)] = char_string
+                    edges.append((stringified_q, state))
+                    edge_labels[(stringified_q, state)] = char_string
 
         G.add_edges_from(edges)
 
@@ -330,7 +367,7 @@ class NFA:
         plt.show()
 
     @staticmethod
-    def merge_nfas(nfas: list["NFA"]) -> "NFA":
+    def merge_nfas(nfas: list["TypedNFA"]) -> "TypedNFA":
         """Merge together a bunch of (tagged) NFAs to create a single one which runs them in parallel.
         Prioritises them (e.g. for tag emitting) in the order they're given"""
 
@@ -340,7 +377,7 @@ class NFA:
         def get_prefix(state: str) -> tuple[str, int]:
             """Given a state of the form "r{i}_{foo}" return (foo, i)"""
             # I can't use regexes to solve this because I'm building a regex engine
-            assert state[0] == "r"
+            assert str(state)[0] == "r"
             for i in range(1, len(state)):
                 if state[i] == "_":
                     return (state[i + 1 :], int(state[1:i]))
@@ -352,7 +389,7 @@ class NFA:
             return f"r{number}_{state}"
 
         if len(nfas) == 0:
-            return NFA({"0"}, set(), lambda _q, _c: set(), "0", set())
+            return TypedNFA({"0"}, set(), lambda _q, _c: set(), "0", set(), "")
 
         Sigma = nfas[0].Sigma
         for nfa in nfas:
@@ -369,8 +406,12 @@ class NFA:
             state_rankings = []
         F_prime: set[str] = set()
 
+        str_to_state: dict[tuple[int, str], StateType] = {}
+
         for i, nfa in enumerate(nfas):
-            for state in nfa.Q:
+            for state_ in nfa.Q:
+                state = str(state_)
+                str_to_state[(i, state)] = state_
                 state_prime = add_prefix(state, i)
                 Q.add(state_prime)
                 if doing_tags:
@@ -381,17 +422,47 @@ class NFA:
                     [add_prefix(state, i) for state in nfa.state_rankings]
                 )
 
-        def transition_function(q: str, c: str) -> set[str]:
+        def transition_function(q: str, c: TokenType) -> set[str]:
             if q == "0" and c == "":
                 return {f"r{i}_{nfa.q_0}" for (i, nfa) in enumerate(nfas)}
             if q.startswith("r"):
-                q_prime, i = get_prefix(q)
+                q_prime_, i = get_prefix(q)
+                q_prime = str_to_state[(i, q_prime_)]
                 response_prime = nfas[i].delta(q_prime, c)
                 response = {f"r{i}_{q}" for q in response_prime}
                 return response
             return set()
 
-        return NFA(Q, Sigma, transition_function, "0", F_prime, tags, state_rankings)
+        return TypedNFA(
+            Q, Sigma, transition_function, "0", F_prime, "", tags, state_rankings
+        )
+
+
+class NFA(TypedNFA[str, str, str]):
+    def __init__(
+        self,
+        Q: set[str],
+        Sigma: set[str],
+        delta: Callable[[str, str], set[str]],
+        q_0: str,
+        F: set[str],
+        tags: dict[str, str] = {},  # Optional mapping from states to tags
+        state_rankings: list[
+            str
+        ] = [],  # Priority order of states for when we're in multiple accept states at once
+    ):
+        for s in Sigma:
+            assert isinstance(s, str) and len(s) == 1, s
+        super().__init__(
+            Q,
+            Sigma,
+            delta,
+            q_0,
+            F,
+            epsilon="",
+            tags=tags,
+            state_rankings=state_rankings,
+        )
 
 
 def main() -> None:
@@ -407,7 +478,7 @@ def main() -> None:
             return {"3"}
         return set()
 
-    nfa = NFA(
+    nfa: NFA = NFA(
         {"0", "1", "2", "3"},
         set(ascii_lowercase[:6]),
         transition_function,
