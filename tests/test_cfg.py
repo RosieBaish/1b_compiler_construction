@@ -365,3 +365,24 @@ def test_is_left_recursive():
         },
         False,
     )
+
+
+def test_add_starting_production():
+    A = NonTerminal("A")
+    B = NonTerminal("B")
+    C = NonTerminal("C")
+
+    a = Terminal("a")
+    b = Terminal("b")
+    c = Terminal("c")
+
+    P = {
+        A: [[a, b, c]],
+        B: [[A], [epsilon]],
+    }
+
+    cfg = CFG({A, B, C}, {a, b, c}, P, A, add_unique_starting_production=True)
+
+    S = NonTerminal("S")
+    assert cfg.N == {A, B, C, S}
+    assert cfg.P[S] == [Production(S, [A])]

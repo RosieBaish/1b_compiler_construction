@@ -34,12 +34,20 @@ Start Symbol: {NonTerminal}
 
 
 class Grammar:
-    def __init__(self, *, filename: str = "", contents: str = ""):
+    def __init__(
+        self,
+        *,
+        filename: str = "",
+        contents: str = "",
+        add_starting_production: bool = False,
+    ):
         # I'm deliberately not parsing this 'properly' because we're implementing a parser here
         # And so I'm avoiding the built-in stuff.
         # Ditto regexes etc.
 
         assert (filename == "") ^ (contents == "")
+
+        self.add_starting_production = add_starting_production
 
         self.name: str
         self.terminal_triples: list[tuple[Terminal, Regex, list[str]]] = []
@@ -182,5 +190,6 @@ class Grammar:
             self.start_symbol,
             terminals_order=self.terminals,
             nonterminals_order=self.nonterminals,
+            add_unique_starting_production=self.add_starting_production,
         )
         return self._cfg

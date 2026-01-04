@@ -19,6 +19,7 @@ class CFG:
         E: NonTerminal,
         terminals_order: Optional[list[Terminal]] = None,
         nonterminals_order: Optional[list[NonTerminal]] = None,
+        add_unique_starting_production: bool = False,
     ):
         self.N = N
         self.T = T
@@ -29,6 +30,12 @@ class CFG:
                 self.P[n].append(Production(n, production))
         self.E = E
 
+        # Only relevant if we added a new production S -> E$
+        self.new_E = E
+        self.original_E = E
+        self.EOF: Terminal
+        self.starting_prod: Optional[Production] = None
+
         self.terminals_order = (
             terminals_order if terminals_order is not None else sorted(list(self.T))
         )
@@ -37,6 +44,31 @@ class CFG:
             if nonterminals_order is not None
             else sorted(list(self.N))
         )
+
+        if add_unique_starting_production:
+            S = NonTerminal("S")
+            # Check if we already have one, if so don't add a new one
+            if (
+                len(starting_prod := self.P[self.E]) != 1
+                or starting_prod[0].LHS != S
+                or len(starting_prod[0].RHS) != 2
+                or starting_prod[0].RHS[-1] != dollar
+            ):
+                # We don't have one
+                assert S not in self.N, self.N
+                self.N |= {S}
+                self.new_E = S
+                self.E = S
+                self.nonterminals_order.insert(0, S)
+
+                assert dollar not in self.T
+                self.EOF = dollar
+
+                self.starting_prod = Production(S, [self.original_E])
+                self.P[S] = [self.starting_prod]
+
+        if len(self.P[self.E]) == 1:
+            self.starting_prod = self.P[self.E][0]
 
         for n in self.N:
             assert n in self.P, n
