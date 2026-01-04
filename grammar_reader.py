@@ -180,5 +180,7 @@ class Grammar:
             set(self.terminals),
             self.productions,
             self.start_symbol,
+            terminals_order=self.terminals,
+            nonterminals_order=self.nonterminals,
         )
         return self._cfg

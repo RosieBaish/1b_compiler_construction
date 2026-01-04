@@ -29,8 +29,14 @@ class CFG:
                 self.P[n].append(Production(n, production))
         self.E = E
 
-        self.terminals_order = terminals_order
-        self.nonterminals_order = nonterminals_order
+        self.terminals_order = (
+            terminals_order if terminals_order is not None else sorted(list(self.T))
+        )
+        self.nonterminals_order = (
+            nonterminals_order
+            if nonterminals_order is not None
+            else sorted(list(self.N))
+        )
 
         for n in self.N:
             assert n in self.P, n
@@ -104,11 +110,7 @@ class CFG:
             return epsilon in self.first[alpha]
 
     def print_nullable(self) -> None:  # pragma: no cover
-        for n in (
-            sorted(list(self.N))
-            if self.nonterminals_order is None
-            else self.nonterminals_order
-        ):
+        for n in self.nonterminals_order:
             print(f"Nullable({n}) = {self.is_nullable(n)}")
 
     def get_first(self, alpha: Symbol | list[Symbol] | Production) -> set[Terminal]:
@@ -161,11 +163,7 @@ class CFG:
         return self._first
 
     def print_first(self) -> None:  # pragma: no cover
-        for n in (
-            sorted(list(self.N))
-            if self.nonterminals_order is None
-            else self.nonterminals_order
-        ):
+        for n in self.nonterminals_order:
             print(f"First({n}) = {self.first[n]}")
 
     @property
@@ -209,11 +207,7 @@ class CFG:
         return self._follow
 
     def print_follow(self) -> None:  # pragma: no cover
-        for n in (
-            sorted(list(self.N))
-            if self.nonterminals_order is None
-            else self.nonterminals_order
-        ):
+        for n in self.nonterminals_order:
             print(f"Follow({n}) = {self.follow[n]}")
 
     @property
@@ -238,16 +232,8 @@ class CFG:
         return self._ll1_parse_table
 
     def print_ll1_parse_table(self) -> None:  # pragma: no cover
-        terminals = (
-            sorted(list(self.T))
-            if self.terminals_order is None
-            else self.terminals_order
-        )
-        nonterminals = (
-            sorted(list(self.N))
-            if self.nonterminals_order is None
-            else self.nonterminals_order
-        )
+        terminals = self.terminals_order
+        nonterminals = self.nonterminals_order
 
         rows: list[list[str]] = []
         rows.append([""] + [str(t) for t in terminals])
