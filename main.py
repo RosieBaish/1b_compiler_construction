@@ -7,6 +7,7 @@ import lexer
 import nfa
 import recursive_descent_parser_example
 import regex
+import parser_generator
 
 
 def main() -> None:
@@ -22,6 +23,7 @@ def main() -> None:
     parser.add_argument("--recursive-descent-parser-example", action="store_true")
     parser.add_argument("--cfg", action="store_true")
     parser.add_argument("--cfg-parser", action="store_true")
+    parser.add_argument("--parser-generator", action="store_true")
 
     args = parser.parse_args()
 
@@ -39,6 +41,8 @@ def main() -> None:
         cfg.main()
     if args.cfg_parser:
         cfg_parser.main()
+    if args.parser_generator:
+        parser_generator.main()
 
 
 if __name__ == "__main__":

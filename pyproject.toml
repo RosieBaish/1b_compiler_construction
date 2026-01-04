@@ -27,7 +27,7 @@ exclude = "^tests/"
 addopts = "--cov=. --cov-report=term-missing"
 
 [tool.coverage.run]
-omit = ["tests/*", "main.py"]
+omit = ["tests/*", "tests_generated_code/*", "main.py"]
 
 [tool.coverage.report]
 exclude_also = [

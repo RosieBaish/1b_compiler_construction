@@ -11,3 +11,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+
+# Generated Parsers
+generated_*_parser.py

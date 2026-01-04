@@ -1,0 +1,29 @@
+Grammar: G2
+
+Terminals Start
+WHITESPACE: "([ \n\t])*" IGNORE
+PLUS: "+"
+TIMES: "*"
+O_BRACKET: "\("
+C_BRACKET: "\)"
+ID: "[a-zA-Z]([a-zA-Z0-9_])*"
+Terminals End
+
+NonTerminals Start
+E
+T
+F
+NonTerminals End
+
+Productions Start
+E -> E + T
+   | T
+
+T -> T * F
+   | F
+
+F -> ( E )
+   | id
+Productions End
+
+Start Symbol: E
