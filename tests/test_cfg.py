@@ -1,7 +1,7 @@
-from cfg import CFG, epsilon, g3_prime, NonTerminal, Terminal
+from cfg import CFG, epsilon, g3_prime, NonTerminal, Terminal, Production
 
 
-def test_G3_prime_nullable():
+def test_G3_prime_nullable_nonterminals():
     G3_prime = g3_prime()
 
     # Expected values hand-computed in my notes
@@ -17,6 +17,28 @@ def test_G3_prime_nullable():
 
     for n in G3_prime.N:
         assert G3_prime.is_nullable(n) == expected_values[n.name], n
+
+
+def test_G3_prime_nullable_other():
+    G3_prime = g3_prime()
+
+    E_prime = NonTerminal("E'")
+    T = NonTerminal("T")
+    T_prime = NonTerminal("T'")
+
+    plus = Terminal("+")
+
+    expected_values = [
+        (plus, False),
+        (epsilon, True),
+        ([plus, T, E_prime], False),
+        ([epsilon], True),
+        ([E_prime, T_prime], True),
+        (Production(E_prime, [epsilon]), True),
+    ]
+
+    for val, answer in expected_values:
+        assert G3_prime.is_nullable(val) == answer
 
 
 def test_epsilon_equivalence():
@@ -159,7 +181,6 @@ def test_ambiguous_grammar():
             Y: [[c], [epsilon]],
         },
         S_prime,
-        nullable_hints={S: False},
     )
 
     expected_nullable = {

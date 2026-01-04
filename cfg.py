@@ -1,5 +1,5 @@
 from functools import total_ordering
-from typing import Optional
+from typing import Optional, Union
 
 
 @total_ordering
@@ -87,7 +87,6 @@ class CFG:
         E: NonTerminal,
         terminals_order: Optional[list[Terminal]] = None,
         nonterminals_order: Optional[list[NonTerminal]] = None,
-        nullable_hints: dict[NonTerminal, bool] = {},
     ):
         self.N = N
         self.T = T
@@ -103,10 +102,6 @@ class CFG:
 
         for n in self.N:
             assert n in self.P, n
-
-        self._computed_nullable = False
-        self._nullable: dict[NonTerminal, bool] = {}
-        self._nullable_hints = nullable_hints
 
         self._computed_first = False
         self._first: dict[NonTerminal, set[Terminal]] = {n: set() for n in self.N}
@@ -161,66 +156,20 @@ class CFG:
                         break
         return False
 
-    def is_nullable(self, alpha: Symbol) -> bool:
-        if isinstance(alpha, Terminal):
+    def is_nullable(self, alpha: Union[Symbol, list[Symbol], Production]) -> bool:
+        if isinstance(alpha, list):
+            assert all(isinstance(a, Symbol) for a in alpha), alpha
+            return all(self.is_nullable(a) for a in alpha)
+        elif isinstance(alpha, Production):
+            return self.is_nullable(alpha.RHS)
+        elif isinstance(alpha, Terminal):
             assert alpha == epsilon or alpha in self.T, alpha
             return alpha == epsilon
         else:
-            assert isinstance(alpha, NonTerminal) and alpha in self.N, alpha
+            assert isinstance(alpha, NonTerminal) and alpha in self.N, (alpha, self.N)
             # If we don't know if n is nullable this will throw an exception
             # This is the correct behaviour because we use the exception for "have we computed it"
-            return self.nullable[alpha]
-
-    @property
-    def nullable(self) -> dict[NonTerminal, bool]:
-        # In theory you can do this without the hints
-        # But if you have productions which can go to themselves
-        # (because everything left of the symbol is nullable)
-        # e.g. S -> XYS|c where X and Y are nullable
-        # Then this code can't figure it out
-        # Because it gets stuck in an infinite loop of nullable(S) iff nullable(S)
-        # So in those cases give a hint for that symbol
-        # It's ugly and I hate it but it's better than nothing
-        # I think the correct answer is to just exclude the problematic production
-        # But I've not proved that point
-
-        if self._computed_nullable:
-            return self._nullable
-
-        # We haven't fully computed it yet, but we use the partially computed version
-        # In the calculation so we need to not just be in an infinite loop
-        self._computed_nullable = True
-
-        for k, v in self._nullable_hints.items():
-            self._nullable[k] = v
-
-        to_calculate = list(self.N)
-        while len(to_calculate) > 0:
-            prev_len = len(to_calculate)
-            for n in list(to_calculate):
-                # Note: n is a non terminal, not an int here despite convention
-                productions = self.P[n]
-                exception = False
-                n_nullable = False  # We're going to OR this together in the loop
-                for production in productions:
-                    production_nullable = True  # We'll AND this together in the loop
-                    try:
-                        for alpha in production.RHS:
-                            production_nullable &= self.is_nullable(alpha)
-                            if not production_nullable:
-                                break  # Short circuit
-                    except Exception:
-                        exception = True
-                    n_nullable |= production_nullable
-                    if n_nullable:  # Short circuit
-                        break
-                if not exception:
-                    # We successfully checked every case, so put the result in the dict
-                    self._nullable[n] = n_nullable
-                    to_calculate.remove(n)
-            assert len(to_calculate) < prev_len, (to_calculate, "Made no progress")
-
-        return self._nullable
+            return epsilon in self.first[alpha]
 
     def print_nullable(self) -> None:  # pragma: no cover
         for n in (
@@ -228,9 +177,15 @@ class CFG:
             if self.nonterminals_order is None
             else self.nonterminals_order
         ):
-            print(f"Nullable({n}) = {self.nullable[n]}")
+            print(f"Nullable({n}) = {self.is_nullable(n)}")
 
     def get_first(self, alpha: Symbol | list[Symbol] | Production) -> set[Terminal]:
+        # There's a bunch of mutual recursion here between get_first, is_nullable and first
+        # It's fine because get_first only calls nullable in the case where it's arg is list[Symbol]
+        # And it calls it with a Symbol not a list
+        # is_nullable only calls first with a NonTerminal, so will never hit an infinite loop
+        # first and get_first call each other, but first will just return the partially computed version
+        # which is has cached, which is the exact behaviour we want, and the cache prevents an infinite loop
         if isinstance(alpha, Terminal):
             assert alpha == epsilon or alpha in self.T, alpha
             return {alpha}
@@ -240,8 +195,8 @@ class CFG:
         elif isinstance(alpha, Production):
             return self.get_first(alpha.RHS)
         else:
-            # Misnomer to call it alpha here when it's a list, but it's the only way
             assert isinstance(alpha, list), alpha
+            assert all(isinstance(a, Symbol) for a in alpha), alpha
             if len(alpha) == 0:
                 return set()
             first_set = self.get_first(alpha[0]) - {epsilon}
@@ -303,9 +258,8 @@ class CFG:
                         continue
                     beta = production.RHS[i + 1 :]
                     self._follow[A] |= self.get_first(beta) - {epsilon}
-                    beta_nullable = all([self.is_nullable(b) for b in beta])
 
-                    if len(beta) == 0 or beta_nullable:
+                    if len(beta) == 0 or self.is_nullable(beta):
                         fixed_point_dependencies[A] |= {n}
 
         changed = True  # Initialise to True to get into the loop
