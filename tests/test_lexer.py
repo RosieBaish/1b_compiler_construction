@@ -40,8 +40,7 @@ def test_lexer_slang_start_whitespace():
     assert len(backslash) == 1
     assert ord(backslash[0]) == 92
 
-    g = Grammar(
-        contents=f"""
+    g = Grammar.from_string(f"""
 Grammar: SLang simplified 1
 
 Terminals Start
@@ -57,8 +56,7 @@ Productions Start
 Productions End
 
 Start Symbol: EXPR
-"""
-    )
+""")
 
     print(g.terminal_triples)
 
@@ -72,8 +70,7 @@ def test_lexer_slang_prioritise_IF_over_IDENT():
     assert len(backslash) == 1
     assert ord(backslash[0]) == 92
 
-    g = Grammar(
-        contents=f"""
+    g = Grammar.from_string(f"""
 Grammar: SLang simplified 2
 
 Terminals Start
@@ -90,8 +87,7 @@ Productions Start
 Productions End
 
 Start Symbol: EXPR
-"""
-    )
+""")
 
     print(g.terminal_triples)
 

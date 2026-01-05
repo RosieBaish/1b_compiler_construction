@@ -36,38 +36,47 @@ Start Symbol: {NonTerminal}
 class Grammar:
     def __init__(
         self,
-        *,
-        filename: str = "",
-        contents: str = "",
+        name: str,
+        terminal_triples: list[tuple[Terminal, str, list[str]]],
+        nonterminals: list[NonTerminal],
+        productions: dict[NonTerminal, list[list[Symbol]]],
+        start_symbol: NonTerminal,
         add_starting_production: bool = False,
     ):
+        self.name = name
+        self.terminal_triples = terminal_triples
+        self.nonterminals = nonterminals
+        self.productions = productions
+        self.start_symbol = start_symbol
+        self.add_starting_production = add_starting_production
+        self._cfg: Optional[CFG] = None
+
+    @staticmethod
+    def from_file(filename: str, add_starting_production: bool = False) -> "Grammar":
+        with open(filename) as f:
+            contents = f.read()
+            return Grammar.from_string(contents, add_starting_production)
+
+    @staticmethod
+    def from_string(contents: str, add_starting_production: bool = False) -> "Grammar":
         # I'm deliberately not parsing this 'properly' because we're implementing a parser here
         # And so I'm avoiding the built-in stuff.
         # Ditto regexes etc.
 
-        assert (filename == "") ^ (contents == "")
+        name: str
+        terminal_triples: list[tuple[Terminal, str, list[str]]] = []
+        terminals: list[Terminal] = []
+        nonterminals: list[NonTerminal] = []
+        productions: dict[NonTerminal, list[list[Symbol]]] = {}
+        start_symbol: NonTerminal
 
-        self.add_starting_production = add_starting_production
-
-        self.name: str
-        self.terminal_triples: list[tuple[Terminal, str, list[str]]] = []
-        self.nonterminals: list[NonTerminal] = []
-        self.productions: dict[NonTerminal, list[list[Symbol]]] = {}
-        self.start_symbol: NonTerminal
-
-        self._cfg: Optional[CFG] = None
-
-        if filename != "":
-            with open(filename) as f:
-                lines = f.readlines()
-        else:
-            lines = contents.split("\n")
+        lines = contents.split("\n")
 
         lines = [line.strip() for line in lines if line.strip() != ""]
 
         grammar_colon = "Grammar: "
         assert lines[0].startswith(grammar_colon)
-        self.name = lines[0][len(grammar_colon) :]
+        name = lines[0][len(grammar_colon) :]
 
         terminal_regexes: list[tuple[Regex, Terminal]] = []
 
@@ -103,7 +112,8 @@ class Grammar:
 
             regex = Regex.parse(rest)
             terminal = Terminal(terminal_name)
-            self.terminal_triples.append((terminal, rest, actions))
+            terminals.append(terminal)
+            terminal_triples.append((terminal, rest, actions))
             terminal_regexes.append((regex, terminal))
             line_num += 1
         assert lines[line_num] == terminals_end
@@ -114,8 +124,8 @@ class Grammar:
         nonterminals_end = "NonTerminals End"
         while lines[line_num] != nonterminals_end:
             # Can't have a terminal and nonterminal with the same name
-            assert Terminal(lines[line_num]) not in self.terminals, lines[line_num]
-            self.nonterminals.append(NonTerminal(lines[line_num]))
+            assert Terminal(lines[line_num]) not in terminals, lines[line_num]
+            nonterminals.append(NonTerminal(lines[line_num]))
             line_num += 1
         assert lines[line_num] == nonterminals_end
         line_num += 1
@@ -127,9 +137,9 @@ class Grammar:
 
             symbol_list: list[Symbol] = []
             for symbol in symbols.split():
-                if (nt := NonTerminal(symbol)) in self.nonterminals:
+                if (nt := NonTerminal(symbol)) in nonterminals:
                     symbol_list.append(nt)
-                elif (t := Terminal(symbol)) in self.terminals:
+                elif (t := Terminal(symbol)) in terminals:
                     symbol_list.append(t)
                 else:
                     found = False
@@ -153,16 +163,16 @@ class Grammar:
             if lines[line_num].startswith("|"):
                 assert prev_nonterminal is not None
                 rhs = lines[line_num][1:].strip()
-                self.productions[prev_nonterminal].append(parse_symbol_list(rhs))
+                productions[prev_nonterminal].append(parse_symbol_list(rhs))
             else:
                 assert "->" in lines[line_num], lines[line_num]
                 _nonterminal, _, rhs = lines[line_num].partition("->")
                 nonterminal = NonTerminal(_nonterminal.strip())
 
-                if nonterminal not in self.productions:
-                    self.productions[nonterminal] = []
+                if nonterminal not in productions:
+                    productions[nonterminal] = []
 
-                self.productions[nonterminal].append(parse_symbol_list(rhs.strip()))
+                productions[nonterminal].append(parse_symbol_list(rhs.strip()))
 
                 prev_nonterminal = nonterminal
 
@@ -170,12 +180,21 @@ class Grammar:
         assert lines[line_num] == productions_end
         line_num += 1
 
-        start_symbol = "Start Symbol: "
-        assert lines[line_num].startswith(start_symbol)
-        self.start_symbol = NonTerminal(lines[line_num][len(start_symbol) :])
-        assert self.start_symbol in self.nonterminals, (
-            self.start_symbol,
-            self.nonterminals,
+        start_symbol_marker = "Start Symbol: "
+        assert lines[line_num].startswith(start_symbol_marker)
+        start_symbol = NonTerminal(lines[line_num][len(start_symbol_marker) :])
+        assert start_symbol in nonterminals, (
+            start_symbol,
+            nonterminals,
+        )
+
+        return Grammar(
+            name,
+            terminal_triples,
+            nonterminals,
+            productions,
+            start_symbol,
+            add_starting_production,
         )
 
     @property

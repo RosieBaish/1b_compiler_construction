@@ -5,8 +5,7 @@ from common import Terminal, NonTerminal, epsilon
 
 
 def test_basic():
-    g = Grammar(
-        contents="""
+    g = Grammar.from_string("""
     Grammar: Basic 1
 
     Terminals Start
@@ -22,8 +21,7 @@ def test_basic():
     Productions End
 
     Start Symbol: A
-    """
-    )
+    """)
 
     a = Terminal("a")
     A = NonTerminal("A")
@@ -37,8 +35,7 @@ def test_basic():
 
 
 def test_store():
-    g = Grammar(
-        contents="""
+    g = Grammar.from_string("""
     Grammar: Basic 2
 
     Terminals Start
@@ -55,8 +52,7 @@ def test_store():
     Productions End
 
     Start Symbol: A
-    """
-    )
+    """)
 
     a = Terminal("a")
     b = Terminal("b")
@@ -74,8 +70,7 @@ def test_store():
 
 
 def test_multiple_productions_per_nonterminal():
-    g = Grammar(
-        contents="""
+    g = Grammar.from_string("""
     Grammar: Basic 3
 
     Terminals Start
@@ -93,8 +88,7 @@ def test_multiple_productions_per_nonterminal():
     Productions End
 
     Start Symbol: A
-    """
-    )
+    """)
 
     a = Terminal("a")
     b = Terminal("b")
@@ -112,8 +106,7 @@ def test_multiple_productions_per_nonterminal():
 
 
 def test_multiple_nonterminals():
-    g = Grammar(
-        contents="""
+    g = Grammar.from_string("""
     Grammar: Basic 4
 
     Terminals Start
@@ -133,8 +126,7 @@ def test_multiple_nonterminals():
     Productions End
 
     Start Symbol: A
-    """
-    )
+    """)
 
     a = Terminal("a")
     b = Terminal("b")
@@ -153,8 +145,7 @@ def test_multiple_nonterminals():
 
 
 def test_epsilon():
-    g = Grammar(
-        contents="""
+    g = Grammar.from_string("""
     Grammar: Basic 5
 
     Terminals Start
@@ -172,8 +163,7 @@ def test_epsilon():
     Productions End
 
     Start Symbol: A
-    """
-    )
+    """)
 
     a = Terminal("a")
     b = Terminal("b")
@@ -191,8 +181,7 @@ def test_epsilon():
 
 
 def test_ignore():
-    g = Grammar(
-        contents="""
+    g = Grammar.from_string("""
     Grammar: Basic 6
 
     Terminals Start
@@ -210,8 +199,7 @@ def test_ignore():
     Productions End
 
     Start Symbol: A
-    """
-    )
+    """)
 
     a = Terminal("a")
     b = Terminal("b")
@@ -253,7 +241,7 @@ def test_read_from_file(tmp_path):
         encoding="utf-8",
     )
 
-    g = Grammar(filename=tempfile)
+    g = Grammar.from_file(tempfile)
 
     a = Terminal("a")
     b = Terminal("b")
@@ -278,8 +266,7 @@ def test_newline():
     assert ord(backslash_n[0]) == 92
     assert ord(backslash_n[1]) == 110
 
-    g = Grammar(
-        contents=f"""
+    g = Grammar.from_string(f"""
     Grammar: Basic 8
 
     Terminals Start
@@ -297,8 +284,7 @@ def test_newline():
     Productions End
 
     Start Symbol: A
-    """
-    )
+    """)
 
     a = Terminal("a")
     b = Terminal("b")
@@ -316,8 +302,7 @@ def test_newline():
 
 
 def test_production_contains_token_not_token_name():
-    g = Grammar(
-        contents="""
+    g = Grammar.from_string("""
     Grammar: Basic 8
 
     Terminals Start
@@ -335,8 +320,7 @@ def test_production_contains_token_not_token_name():
     Productions End
 
     Start Symbol: A
-    """
-    )
+    """)
 
     a = Terminal("a")
     b = Terminal("b")
@@ -354,8 +338,7 @@ def test_production_contains_token_not_token_name():
 
 
 def test_cfg():
-    g = Grammar(
-        contents="""
+    g = Grammar.from_string("""
     Grammar: Basic 1
 
     Terminals Start
@@ -371,8 +354,7 @@ def test_cfg():
     Productions End
 
     Start Symbol: A
-    """
-    )
+    """)
 
     a = Terminal("a")
     A = NonTerminal("A")

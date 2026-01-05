@@ -141,12 +141,10 @@ if __name__ == '__main__':
 
 
 def main() -> None:
-    g = Grammar(filename="g2.grammar", add_starting_production=True)
+    g = Grammar.from_file("g2.grammar", add_starting_production=True)
     pg = ParserGenerator(g, "generated_g2_parser.py", [], [])
-
     pg.generate()
 
-    g = Grammar(filename="slang.grammar", add_starting_production=True)
+    g = Grammar.from_file("slang.grammar", add_starting_production=True)
     pg = ParserGenerator(g, "generated_slang_parser.py", [], [])
-
     pg.generate()

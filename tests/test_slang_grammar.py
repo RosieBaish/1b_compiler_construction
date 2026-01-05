@@ -6,7 +6,7 @@ from lexer import Lexer
 
 
 def test_terminals():
-    g = Grammar(filename="slang.grammar")
+    g = Grammar.from_file("slang.grammar")
 
     # Everything from lexer.mll in the slang repo except comments
     expected_terminal_names = [
@@ -66,7 +66,7 @@ def test_terminals():
 
 
 def test_lex():
-    g = Grammar(filename="slang.grammar")
+    g = Grammar.from_file("slang.grammar")
 
     lexer = Lexer(g.terminal_triples)
 
@@ -101,6 +101,6 @@ if ? = 0 then 17 else 21
 
 
 def test_cfg_created_successfully():
-    g = Grammar(filename="slang.grammar")
+    g = Grammar.from_file("slang.grammar")
 
     assert isinstance(g.cfg, CFG)
