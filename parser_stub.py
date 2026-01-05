@@ -42,7 +42,7 @@ class ParseError(Exception):
 
 def parse_internal(
     Action: dict[int, dict[Terminal, Optional[LR0_Action]]],
-    Goto: dict[int, dict[NonTerminal, int]],
+    Goto: dict[int, dict[NonTerminal, Optional[int]]],
     semantic_actions: dict[NonTerminal, Callable[[list[Any]], Any]],
     source: list[Terminal],
 ) -> str:
@@ -104,7 +104,14 @@ def parse_internal(
             semantic_elements = semantic_stack[-1 * len(action.prod) :]
             semantic_stack = semantic_stack[: -1 * len(action.prod)]
 
-            parser_stack.append(Goto[parser_stack[-1]][action.prod.LHS])
+            next_state = Goto[parser_stack[-1]][action.prod.LHS]
+            assert next_state is not None, (
+                "Unable to GOTO due to invalid stack state",
+                source_index,
+                source,
+                valid_terminals(s),
+            )
+            parser_stack.append(next_state)
             semantic_stack.append(semantic_actions[action.prod.LHS](semantic_elements))
             assert len(parser_stack) == len(semantic_stack) + 1, (
                 "Error - invalid stack lengths",

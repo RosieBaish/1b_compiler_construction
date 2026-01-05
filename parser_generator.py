@@ -40,7 +40,7 @@ class ParserGenerator:
             if isinstance(a, LR0_Shift):
                 return f'LR0_Shift(Terminal("{a.t.name}"), {a.next_state})'
             elif isinstance(a, LR0_Reduce):
-                return f"LR0_Reduce(P[{self.production_list.index(a.prod)}])"
+                return f"LR0_Reduce(_P[{self.production_list.index(a.prod)}])"
             else:
                 assert isinstance(a, LR0_Accept), a
                 return "LR0_Accept()"
@@ -59,7 +59,7 @@ class ParserGenerator:
             for k, v in stringified_Action.items()
         }
         return (
-            "Action = "
+            "_Action: dict[int, dict[Terminal, Optional[LR0_Action]]] = "
             + ParserGenerator.dict_to_string(stringified_Action_1_level)
             + "\n\n"
         )
@@ -76,21 +76,21 @@ class ParserGenerator:
             for k, v in stringified_Goto.items()
         }
         return (
-            "Goto = "
+            "_Goto: dict[int, dict[NonTerminal, Optional[int]]] = "
             + ParserGenerator.dict_to_string(stringified_Goto_1_level)
             + "\n\n"
         )
 
     def terminals_to_string(self) -> str:
         return (
-            "T = [\n"
+            "_T: list[Terminal] = [\n"
             + "".join([f'    Terminal("{t.name}"),\n' for t in self.g.terminals])
             + "]\n\n"
         )
 
     def nonterminals_to_string(self) -> str:
         return (
-            "N = [\n"
+            "_N: list[NonTerminal] = [\n"
             + "".join([f'    NonTerminal("{n.name}"),\n' for n in self.g.nonterminals])
             + "]\n\n"
         )
@@ -98,15 +98,15 @@ class ParserGenerator:
     def productions_to_string(self) -> str:
         production_strings: list[str] = []
         for prod in self.production_list:
-            rhs = f"N[{self.g.nonterminals.index(prod.LHS)}]"
+            rhs = f"_N[{self.g.nonterminals.index(prod.LHS)}]"
 
             rhs_strings: list[str] = []
             for symbol in prod.RHS:
                 if isinstance(symbol, Terminal):
-                    rhs_strings.append(f"T[{self.g.terminals.index(symbol)}]")
+                    rhs_strings.append(f"_T[{self.g.terminals.index(symbol)}]")
                 else:
                     assert isinstance(symbol, NonTerminal)
-                    rhs_strings.append(f"N[{self.g.nonterminals.index(symbol)}]")
+                    rhs_strings.append(f"_N[{self.g.nonterminals.index(symbol)}]")
             if len(rhs_strings) < 8:  # Fairly arbitrary limit
                 production_string = f"    Production({rhs}, ["
                 production_string += ", ".join(rhs_strings)
@@ -121,7 +121,7 @@ class ParserGenerator:
                 production_string += "        ],\n"
                 production_string += "    ),\n"
             production_strings.append(production_string)
-        return "P = [\n" + "".join(production_strings) + "]\n\n"
+        return "_P: list[Production] = [\n" + "".join(production_strings) + "]\n\n"
 
     def regexes_to_string(self) -> str:
         regex_string_list: list[str] = []
@@ -133,7 +133,11 @@ class ParserGenerator:
             regex_string += ", ".join(f'"{action}"' for action in actions)
             regex_string += "]),\n"
             regex_string_list.append(regex_string)
-        return "Regexes = [\n" + "".join(regex_string_list) + "]\n\n"
+        return (
+            "_Regexes: list[tuple[Terminal, str, list[str]]] = [\n"
+            + "".join(regex_string_list)
+            + "]\n\n"
+        )
 
     def generate(
         self,
@@ -159,16 +163,16 @@ class ParserGenerator:
             f.write(self.regexes_to_string())
             f.write(f"""
 def lex(source: str) -> list[Terminal]:
-    return lex_internal(Regexes, source)
+    return lex_internal(_Regexes, source)
 
 
-semantic_actions = {{
-    n: lambda xs, n=n: f"{{n}}({{', '.join([str(x) for x in xs])}})" for n in N
+_semantic_actions: dict[NonTerminal, Callable[[list[Any]], Any]] = {{
+    n: (lambda n: lambda xs: f"{{n}}({{', '.join([str(x) for x in xs])}})")(n) for n in _N
 }}
 
 
 def parse(source: list[Terminal]) -> str:
-    return parse_internal(Action, Goto, semantic_actions, source)
+    return parse_internal(_Action, _Goto, _semantic_actions, source)
 
 
 def main() -> None:

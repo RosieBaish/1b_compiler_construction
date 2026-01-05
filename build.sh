@@ -14,6 +14,8 @@ uv run pytest --cov=. tests/
 
 uv run main.py --parser-generator
 
+uv run mypy generated_*_parser.py
+uv run ruff check generated_*_parser.py
 uv run ruff format --diff generated_*_parser.py
 uv run pytest --cov=. --cov-append tests_generated_code/
 

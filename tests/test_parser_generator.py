@@ -40,7 +40,7 @@ def test_terminals_to_string():
 
     python_source = pg.terminals_to_string()
 
-    assignment = "T = "
+    assignment = "_T: list[Terminal] = "
     assert python_source.startswith(assignment)
     python_source = python_source[len(assignment) :]
 
@@ -55,7 +55,7 @@ def test_nonterminals_to_string():
 
     python_source = pg.nonterminals_to_string()
 
-    assignment = "N = "
+    assignment = "_N: list[NonTerminal] = "
     assert python_source.startswith(assignment)
     python_source = python_source[len(assignment) :]
 
@@ -68,21 +68,17 @@ def test_productions_to_string():
     g = Grammar.from_file("slang.grammar", add_starting_production=True)
     pg = ParserGenerator(g, "", [], [])
 
-    T = g.terminals
-    N = g.nonterminals
+    _T = g.terminals
+    _N = g.nonterminals
 
     python_source = pg.productions_to_string()
 
-    assignment = "P = "
+    assignment = "_P: list[Production] = "
     assert python_source.startswith(assignment)
     python_source = python_source[len(assignment) :]
 
     print(python_source)
 
-    _ = (
-        T,
-        N,
-    )  # These are used in the eval, but the static analysis doesn't know that
     assert eval(python_source) == pg.production_list
 
 
@@ -90,23 +86,18 @@ def test_action_to_string():
     g = Grammar.from_file("g2.grammar", add_starting_production=True)
     pg = ParserGenerator(g, "", [], [])
 
-    T = g.terminals
-    N = g.nonterminals
-    P = pg.production_list
+    _T = g.terminals
+    _N = g.nonterminals
+    _P = pg.production_list
 
     python_source = pg.action_to_string()
 
-    assignment = "Action = "
+    assignment = "_Action: dict[int, dict[Terminal, Optional[LR0_Action]]] = "
     assert python_source.startswith(assignment)
     python_source = python_source[len(assignment) :]
 
     print(python_source)
 
-    _ = (
-        T,
-        N,
-        P,
-    )  # These are used in the eval, but the static analysis doesn't know that
     assert eval(python_source) == pg.cfg.slr1_action
 
 
@@ -116,7 +107,7 @@ def test_goto_to_string():
 
     python_source = pg.goto_to_string()
 
-    assignment = "Goto = "
+    assignment = "_Goto: dict[int, dict[NonTerminal, Optional[int]]] = "
     assert python_source.startswith(assignment)
     python_source = python_source[len(assignment) :]
 
@@ -131,7 +122,7 @@ def test_regexes_to_string():
 
     python_source = pg.regexes_to_string()
 
-    assignment = "Regexes = "
+    assignment = "_Regexes: list[tuple[Terminal, str, list[str]]] = "
     assert python_source.startswith(assignment)
     python_source = python_source[len(assignment) :]
 
