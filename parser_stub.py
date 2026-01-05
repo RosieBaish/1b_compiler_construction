@@ -9,7 +9,7 @@ from common import (
 )
 from lexer import Lexer
 
-from typing import Optional
+from typing import Any, Callable, Optional
 
 
 def lex_internal(
@@ -43,13 +43,14 @@ class ParseError(Exception):
 def parse_internal(
     Action: dict[int, dict[Terminal, Optional[LR0_Action]]],
     Goto: dict[int, dict[NonTerminal, int]],
+    semantic_actions: dict[NonTerminal, Callable[[list[Any]], Any]],
     source: list[Terminal],
 ) -> str:
     def valid_terminals(state: int) -> list[Terminal]:
         return [t for t, a in Action[state].items() if a is not None]
 
     parser_stack = [0]
-    semantic_stack: list[str] = []
+    semantic_stack: list[Any] = []
     source_index = 0
     assert len(parser_stack) == len(semantic_stack) + 1, (
         "Error - invalid stack lengths",
@@ -77,7 +78,7 @@ def parse_internal(
             assert a == action.t, ("Invalid Shift Action", s, a, action)
             assert action.next_state is not None, ("Invalid Shift Action", s, a, action)
             parser_stack.append(action.next_state)
-            semantic_stack.append(str(a))
+            semantic_stack.append(a)
             assert len(parser_stack) == len(semantic_stack) + 1, (
                 "Error - invalid stack lengths",
                 parser_stack,
@@ -104,7 +105,7 @@ def parse_internal(
             semantic_stack = semantic_stack[: -1 * len(action.prod)]
 
             parser_stack.append(Goto[parser_stack[-1]][action.prod.LHS])
-            semantic_stack.append(f"{action.prod.LHS}({', '.join(semantic_elements)})")
+            semantic_stack.append(semantic_actions[action.prod.LHS](semantic_elements))
             assert len(parser_stack) == len(semantic_stack) + 1, (
                 "Error - invalid stack lengths",
                 parser_stack,

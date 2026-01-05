@@ -160,8 +160,13 @@ def lex(source: str) -> list[Terminal]:
     return lex_internal(Regexes, source)
 
 
+semantic_actions = {{
+    n: lambda xs, n=n: f"{{n}}({{', '.join([str(x) for x in xs])}})" for n in N
+}}
+
+
 def parse(source: list[Terminal]) -> str:
-    return parse_internal(Action, Goto, source)
+    return parse_internal(Action, Goto, semantic_actions, source)
 
 
 def main() -> None:

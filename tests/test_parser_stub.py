@@ -37,8 +37,17 @@ def g2():
 def test_g2_id_times_id():
     cfg = g2()
 
+    semantic_actions = {
+        n: lambda xs, n=n: f"{n}({', '.join([str(x) for x in xs])})" for n in cfg.N
+    }
+
     assert (
-        parse_internal(cfg.slr1_action, cfg.slr1_goto, [ident, times, ident, dollar])
+        parse_internal(
+            cfg.slr1_action,
+            cfg.slr1_goto,
+            semantic_actions,
+            [ident, times, ident, dollar],
+        )
         == "E(T(T(F(id)), *, F(id)))"
     )
 
@@ -46,8 +55,17 @@ def test_g2_id_times_id():
 def test_g2_unexpected_token():
     cfg = g2()
 
+    semantic_actions = {
+        n: lambda xs, n=n: f"{n}({', '.join([str(x) for x in xs])})" for n in cfg.N
+    }
+
     with pytest.raises(ParseError) as e:
-        parse_internal(cfg.slr1_action, cfg.slr1_goto, [ident, times, plus, dollar])
+        parse_internal(
+            cfg.slr1_action,
+            cfg.slr1_goto,
+            semantic_actions,
+            [ident, times, plus, dollar],
+        )
     assert e.value.message == "Unexpected token, unable to proceed"
     assert e.value.source_index == 2
 
