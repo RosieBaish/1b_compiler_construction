@@ -10,7 +10,7 @@ import ast
 
 ##############################################################################################################
 # WARNING
-# This code uses eval to check that the generated code is sensible
+# This code uses exec and eval to check that the generated code is sensible
 # On paper this is a terrible idea, however
 # 1. This project is a compiler generator, so it already generates code that then gets executed
 # 2. The resuting generated code then generates yet more code which will (hopefully) be executed
@@ -129,3 +129,52 @@ def test_regexes_to_string():
     print(python_source)
 
     assert eval(python_source) == g.terminal_triples
+
+
+def test_generated_ast_classes():
+    g = Grammar.from_file("g2.grammar", add_starting_production=True)
+    pg = ParserGenerator(g, "", [], [])
+
+    python_source = pg.generate_ast_classes()
+
+    print(python_source)
+
+    expected_base_class = "GeneratedAST"
+    expected_classes = ["S", "E", "T", "F"]
+
+    namespace = {}
+    exec(python_source, namespace)
+
+    assert expected_base_class in namespace
+    for c in expected_classes:
+        assert c in namespace
+        assert issubclass(namespace[c], namespace[expected_base_class])
+
+    assert len(namespace.keys()) == 1 + len(expected_classes) + 1, (
+        "+1 for base class, +1 for builtins"
+    )
+
+
+def test_generated_semantic_actions():
+    g = Grammar.from_file("g2.grammar", add_starting_production=True)
+    pg = ParserGenerator(g, "", [], [])
+
+    python_source = pg.generate_ast_classes()
+    print(python_source)
+
+    namespace = {"_N": pg.g.nonterminals}
+    exec("from common import NonTerminal; from typing import Any, Callable", namespace)
+
+    exec(python_source, namespace)
+
+    python_source = pg.generate_semantic_actions()
+    assignment = "_semantic_actions: dict[NonTerminal, Callable[[list[Any]], Any]] = "
+    assert python_source.startswith(assignment)
+
+    print(python_source)
+
+    exec(python_source, namespace)
+
+    E = NonTerminal("E")
+
+    assert isinstance(namespace["_semantic_actions"][E]([]), namespace["E"])

@@ -139,6 +139,42 @@ class ParserGenerator:
             + "]\n\n"
         )
 
+    def generate_ast_classes(self) -> str:
+        generated = """
+class GeneratedAST:
+    def __init__(self, nodes: list["GeneratedAST | Terminal"]):
+        self.nodes = nodes
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, type(self)) and self.nodes == other.nodes
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}({', '.join([str(node) for node in self.nodes])})"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+
+"""
+
+        for n in self.g.nonterminals:
+            generated += f"""
+class {n}(GeneratedAST):
+    pass
+
+
+""".lstrip()
+        return generated
+
+    def generate_semantic_actions(self) -> str:
+        generated = (
+            "_semantic_actions: dict[NonTerminal, Callable[[list[Any]], Any]] = {\n"
+        )
+        for i, n in enumerate(self.g.nonterminals):
+            generated += f"    _N[{i}]: lambda xs: {n}(xs),\n"
+        generated += "}\n\n"
+        return generated
+
     def generate(
         self,
     ) -> None:  # pragma: no cover, This is tested by testing the generated parsers
@@ -161,14 +197,11 @@ class ParserGenerator:
             f.write(self.action_to_string())
             f.write(self.goto_to_string())
             f.write(self.regexes_to_string())
+            f.write(self.generate_ast_classes())
+            f.write(self.generate_semantic_actions())
             f.write(f"""
 def lex(source: str) -> list[Terminal]:
     return lex_internal(_Regexes, source)
-
-
-_semantic_actions: dict[NonTerminal, Callable[[list[Any]], Any]] = {{
-    n: (lambda n: lambda xs: f"{{n}}({{', '.join([str(x) for x in xs])}})")(n) for n in _N
-}}
 
 
 def parse(source: list[Terminal]) -> str:
