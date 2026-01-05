@@ -1,6 +1,10 @@
 from parser_generator import ParserGenerator
 
-from common import NonTerminal, Terminal, Production, LR0_Shift, LR0_Reduce, LR0_Accept
+from grammar_reader import Grammar
+
+# These are used in the eval but ruff doesn't know that
+from common import NonTerminal, Terminal, Production, LR0_Accept, LR0_Shift, LR0_Reduce  # noqa: F401
+
 
 import ast
 
@@ -30,26 +34,67 @@ def test_dict_to_string():
     assert ast.literal_eval(python_source) == test_dict
 
 
+def test_terminals_to_string():
+    g = Grammar.from_file("g2.grammar", add_starting_production=True)
+    pg = ParserGenerator(g, "", [], [])
+
+    python_source = pg.terminals_to_string()
+
+    assignment = "T = "
+    assert python_source.startswith(assignment)
+    python_source = python_source[len(assignment) :]
+
+    print(python_source)
+
+    assert eval(python_source) == g.terminals
+
+
+def test_nonterminals_to_string():
+    g = Grammar.from_file("g2.grammar", add_starting_production=True)
+    pg = ParserGenerator(g, "", [], [])
+
+    python_source = pg.nonterminals_to_string()
+
+    assignment = "N = "
+    assert python_source.startswith(assignment)
+    python_source = python_source[len(assignment) :]
+
+    print(python_source)
+
+    assert eval(python_source) == g.nonterminals
+
+
+def test_productions_to_string():
+    g = Grammar.from_file("slang.grammar", add_starting_production=True)
+    pg = ParserGenerator(g, "", [], [])
+
+    T = g.terminals
+    N = g.nonterminals
+
+    python_source = pg.productions_to_string()
+
+    assignment = "P = "
+    assert python_source.startswith(assignment)
+    python_source = python_source[len(assignment) :]
+
+    print(python_source)
+
+    _ = (
+        T,
+        N,
+    )  # These are used in the eval, but the static analysis doesn't know that
+    assert eval(python_source) == pg.production_list
+
+
 def test_action_to_string():
-    a = Terminal("a")
-    b = Terminal("b")
+    g = Grammar.from_file("g2.grammar", add_starting_production=True)
+    pg = ParserGenerator(g, "", [], [])
 
-    A = NonTerminal("A")
-    B = NonTerminal("B")
+    T = g.terminals
+    N = g.nonterminals
+    P = pg.production_list
 
-    # This Action table makes no sense, it's just a short one that has all the elements we need
-    Action = {
-        0: {
-            a: None,
-            b: LR0_Shift(a, 1),
-        },
-        1: {
-            a: LR0_Reduce(Production(A, [a, B, b])),
-            b: LR0_Accept(),
-        },
-    }
-
-    python_source = ParserGenerator.action_to_string(Action)
+    python_source = pg.action_to_string()
 
     assignment = "Action = "
     assert python_source.startswith(assignment)
@@ -57,25 +102,19 @@ def test_action_to_string():
 
     print(python_source)
 
-    assert eval(python_source) == Action
+    _ = (
+        T,
+        N,
+        P,
+    )  # These are used in the eval, but the static analysis doesn't know that
+    assert eval(python_source) == pg.cfg.slr1_action
 
 
 def test_goto_to_string():
-    A = NonTerminal("A")
-    B = NonTerminal("B")
+    g = Grammar.from_file("g2.grammar", add_starting_production=True)
+    pg = ParserGenerator(g, "", [], [])
 
-    Goto = {
-        0: {
-            A: None,
-            B: 1,
-        },
-        1: {
-            A: 1,
-            B: 0,
-        },
-    }
-
-    python_source = ParserGenerator.goto_to_string(Goto)
+    python_source = pg.goto_to_string()
 
     assignment = "Goto = "
     assert python_source.startswith(assignment)
@@ -83,16 +122,14 @@ def test_goto_to_string():
 
     print(python_source)
 
-    assert eval(python_source) == Goto
+    assert eval(python_source) == pg.cfg.slr1_goto
 
 
 def test_regexes_to_string():
-    a = Terminal("a")
-    b = Terminal("b")
+    g = Grammar.from_file("slang.grammar", add_starting_production=True)
+    pg = ParserGenerator(g, "", [], [])
 
-    Regexes = [(a, "a", ["STORE"]), (b, "\n\t\\", ["IGNORE"])]
-
-    python_source = ParserGenerator.regexes_to_string(Regexes)
+    python_source = pg.regexes_to_string()
 
     assignment = "Regexes = "
     assert python_source.startswith(assignment)
@@ -100,4 +137,4 @@ def test_regexes_to_string():
 
     print(python_source)
 
-    assert eval(python_source) == Regexes
+    assert eval(python_source) == g.terminal_triples

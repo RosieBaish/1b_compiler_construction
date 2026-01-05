@@ -1,4 +1,3 @@
-import abc
 from functools import total_ordering
 from typing import Optional
 
@@ -73,18 +72,6 @@ class Production:
     def __len__(self) -> int:
         return len(self.RHS)
 
-    def parseable_string(self) -> str:
-        parseable_rhs: list[str] = []
-        for symbol in self.RHS:
-            if isinstance(symbol, Terminal):
-                parseable_rhs.append(f'Terminal("{symbol.name}")')
-            else:
-                assert isinstance(symbol, NonTerminal), symbol
-                parseable_rhs.append(f'NonTerminal("{symbol.name}")')
-        return (
-            f'Production(NonTerminal("{self.LHS.name}"), [{", ".join(parseable_rhs)}])'
-        )
-
 
 class LR0_Action:
     def __repr__(self) -> str:
@@ -93,10 +80,6 @@ class LR0_Action:
     def __eq__(self, other: object) -> bool:
         # Quick and dirty
         return isinstance(other, LR0_Action) and str(self) == str(other)
-
-    @abc.abstractmethod
-    def parseable_string(self) -> str:
-        """Return a string which can be parsed in python to produce this object"""
 
 
 class LR0_Shift(LR0_Action):
@@ -107,9 +90,6 @@ class LR0_Shift(LR0_Action):
     def __str__(self) -> str:
         return f"Shift({self.t}, {self.next_state})"
 
-    def parseable_string(self) -> str:
-        return f'LR0_Shift(Terminal("{self.t.name}"), {self.next_state})'
-
 
 class LR0_Reduce(LR0_Action):
     def __init__(self, prod: Production):
@@ -118,16 +98,10 @@ class LR0_Reduce(LR0_Action):
     def __str__(self) -> str:
         return f"Reduce({self.prod})"
 
-    def parseable_string(self) -> str:
-        return f"LR0_Reduce({self.prod.parseable_string()})"
-
 
 class LR0_Accept(LR0_Action):
     def __str__(self) -> str:
         return "Accept()"
-
-    def parseable_string(self) -> str:
-        return "LR0_Accept()"
 
 
 epsilon = Terminal("ε")
