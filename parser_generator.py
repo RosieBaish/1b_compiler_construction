@@ -66,7 +66,9 @@ class ParserGenerator:
 
     def goto_to_string(self) -> str:
         stringified_Goto: dict[str, dict[str, str]] = {
-            str(i): {f'Terminal("{t}")': str(goto_item) for t, goto_item in row.items()}
+            str(i): {
+                f'NonTerminal("{n}")': str(goto_item) for n, goto_item in row.items()
+            }
             for i, row in self.cfg.slr1_goto.items()
         }
         stringified_Goto_1_level = {

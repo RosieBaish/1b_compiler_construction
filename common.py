@@ -4,27 +4,17 @@ from typing import Optional
 
 @total_ordering
 class Symbol:
-    def __init__(self, name: str, value: Optional[str] = None):
+    def __init__(self, name: str):
         self.name = name
-        self.value = value
-
-    def identical_to(self, other: object) -> bool:
-        return (
-            isinstance(other, Symbol)
-            and self.name == other.name
-            and self.value == other.value
-        )
 
     def __str__(self) -> str:
-        if self.value is not None:
-            return f"{self.name}({self.value})"
         return self.name
 
     def __repr__(self) -> str:
         return str(self)
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, Symbol) and self.name == other.name
+        return isinstance(other, type(self)) and self.name == other.name
 
     def __lt__(self, other: object) -> bool:
         assert isinstance(other, Symbol)
@@ -36,7 +26,20 @@ class Symbol:
 
 class Terminal(Symbol):
     def __init__(self, name: str, value: Optional[str] = None):
-        super().__init__(name, value)
+        super().__init__(name)
+        self.value = value
+
+    def __str__(self) -> str:
+        if self.value is not None:
+            return f"{self.name}({self.value})"
+        return self.name
+
+    def identical_to(self, other: object) -> bool:
+        return (
+            isinstance(other, type(self))
+            and self.name == other.name
+            and self.value == other.value
+        )
 
 
 class NonTerminal(Symbol):
