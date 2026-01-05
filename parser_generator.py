@@ -145,3 +145,8 @@ def main() -> None:
     pg = ParserGenerator(g, "generated_g2_parser.py", [], [])
 
     pg.generate()
+
+    g = Grammar(filename="slang.grammar", add_starting_production=True)
+    pg = ParserGenerator(g, "generated_slang_parser.py", [], [])
+
+    pg.generate()

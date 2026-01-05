@@ -51,61 +51,74 @@ Terminals End
 NonTerminals Start
 EXPR
 EXPR1
+SUM
+INTERMEDIATE_BINARY_OP
+ASSIGNMENT
 SIMPLE_EXPR
 EXPR_LIST
 TYPE
+TYPE1
 NonTerminals End
 
 Productions Start
 EXPR -> EXPR1
-      | begin EXPRlist end
-      | if EXPR then EXPR else EXPR
-      | while EXPR do EXPR
-      | fst EXPR
-      | snd EXPR
-      | inl TYPE EXPR
-      | inr TYPE EXPR
-      | fun ( IDENT : TYPE ) -> EXPR
-      | let IDENT : TYPE = EXPR in EXPR
-      | let IDENT ( IDENT : TYPE ) : TYPE = EXPR in EXPR
-      | case EXPR of inl ( IDENT : TYPE ) -> EXPR BAR inr ( IDENT : TYPE ) -> EXPR
+      | begin EXPR_LIST end
+      | if EXPR then EXPR else EXPR ;
+      | while EXPR do EXPR ;
+      | fst ( EXPR )
+      | snd ( EXPR )
+      | inl TYPE ( EXPR )
+      | inr TYPE ( EXPR )
+      | fun ( IDENT : TYPE ) -> ( EXPR )
+      | let IDENT : TYPE = EXPR in ( EXPR )
+      | let IDENT ( IDENT : TYPE ) : TYPE = EXPR in ( EXPR )
+      | case EXPR of inl ( IDENT : TYPE ) -> EXPR | inr ( IDENT : TYPE ) -> EXPR ;
 
-EXPR1 -> SIMPLE_EXPR
-       | - EXPR1
-       | EXPR1 + EXPR1
-       | EXPR1 - EXPR1
-       | EXPR1 * EXPR1
-       | EXPR1 / EXPR1
-       | EXPR1 < EXPR1
-       | EXPR1 = EXPR1
-       | EXPR1 && EXPR1
-       | EXPR1 || EXPR1
-       | EXPR1 := EXPR1
-       | EXPR1 SIMPLE_EXPR
+EXPR1 -> - SIMPLE_EXPR
+       | SUM
+       | EXPR SIMPLE_EXPR
+
+SUM -> SUM + INTERMEDIATE_BINARY_OP
+     | SUM - INTERMEDIATE_BINARY_OP
+     | INTERMEDIATE_BINARY_OP
+
+INTERMEDIATE_BINARY_OP -> INTERMEDIATE_BINARY_OP * ASSIGNMENT
+	 | INTERMEDIATE_BINARY_OP / ASSIGNMENT
+	 | INTERMEDIATE_BINARY_OP < ASSIGNMENT
+	 | INTERMEDIATE_BINARY_OP = ASSIGNMENT
+	 | INTERMEDIATE_BINARY_OP && ASSIGNMENT
+	 | INTERMEDIATE_BINARY_OP || ASSIGNMENT
+	 | ASSIGNMENT
+
+ASSIGNMENT -> ASSIGNMENT := ( EXPR )
+            | SIMPLE_EXPR
 
 SIMPLE_EXPR -> ()
-	     | INT
-	     | ?
-	     | IDENT
-	     | TRUE
-	     | FALSE
-	     | ( EXPR )
-	     | ( EXPR , EXPR )
-	     | ~ EXPR
-	     | ! EXPR
-	     | ref EXPR
+             | INT
+             | ?
+             | IDENT
+             | TRUE
+             | FALSE
+             | ( EXPR )
+             | ( EXPR , EXPR )
+             | ~ ( EXPR )
+             | ! ( EXPR )
+             | ref ( EXPR )
 
 EXPR_LIST -> EXPR
-	  | EXPR ; EXPR_LIST
+           | EXPR ; EXPR_LIST
 
-TYPE -> bool
+TYPE -> TYPE -> TYPE1
+      | TYPE * TYPE1
+      | TYPE + TYPE1
+      | TYPE ref
+      | TYPE1
+
+TYPE1 -> ( TYPE )
+       | bool
        | int
        | unit
-       | TYPE -> TYPE
-       | TYPE * TYPE
-       | TYPE + TYPE
-       | TYPE ref
-       | ( TYPE )
+
 Productions End
 
 Start Symbol: EXPR

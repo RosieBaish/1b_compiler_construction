@@ -9,6 +9,8 @@ from common import (
 )
 from lexer import Lexer
 
+from typing import Optional
+
 
 def lex_internal(
     Regexes: list[tuple[Terminal, str, list[str]]], source: str
@@ -20,20 +22,32 @@ def lex_internal(
 
 
 class ParseError(Exception):
-    def __init__(self, message: str, source_index: int, source: list[Terminal]):
+    def __init__(
+        self,
+        message: str,
+        source_index: int,
+        source: list[Terminal],
+        valid_terminals: list[Terminal],
+    ):
         self.message = message
         self.source_index = source_index
         self.source = source
+        self.valid_terminals = valid_terminals
 
     def __str__(self) -> str:
-        return f"Parse Error {self.message} at index {self.source_index} ({self.source[self.source_index]}). Full text {self.source}"
+        return f"""Parse Error {self.message} at index {self.source_index} ({self.source[self.source_index]}).
+        Expected one of {[str(t) for t in self.valid_terminals]}
+        Full text: {self.source}"""
 
 
 def parse_internal(
-    Action: dict[int, dict[Terminal, list[LR0_Action]]],
+    Action: dict[int, dict[Terminal, Optional[LR0_Action]]],
     Goto: dict[int, dict[NonTerminal, int]],
     source: list[Terminal],
 ) -> str:
+    def valid_terminals(state: int) -> list[Terminal]:
+        return [t for t, a in Action[state].items() if a is not None]
+
     parser_stack = [0]
     semantic_stack: list[str] = []
     source_index = 0
@@ -54,7 +68,10 @@ def parse_internal(
         action = Action[s][a]
         if action is None:
             raise ParseError(
-                "Unexpected token, unable to proceed", source_index, source
+                "Unexpected token, unable to proceed",
+                source_index,
+                source,
+                valid_terminals(s),
             )
         if isinstance(action, LR0_Shift):
             assert a == action.t, ("Invalid Shift Action", s, a, action)
