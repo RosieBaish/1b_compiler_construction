@@ -147,17 +147,17 @@ def to_AST(self) -> AST:
     if len(self.nodes) == 4:
         if (
             self.nodes[0] == Terminal("FST")
-            and self.nodes[1] == Terminal("O_PAREN")
+            and self.nodes[1] == Terminal("LPAREN")
             and isinstance(self.nodes[2], EXPR)
-            and self.nodes[3] == Terminal("C_PAREN")
+            and self.nodes[3] == Terminal("RPAREN")
         ):
             return AST(AST.Kind.Fst, [self.nodes[2].to_AST()])
 
         if (
             self.nodes[0] == Terminal("SND")
-            and self.nodes[1] == Terminal("O_PAREN")
+            and self.nodes[1] == Terminal("LPAREN")
             and isinstance(self.nodes[2], EXPR)
-            and self.nodes[3] == Terminal("C_PAREN")
+            and self.nodes[3] == Terminal("RPAREN")
         ):
             return AST(AST.Kind.Snd, [self.nodes[2].to_AST()])
 
@@ -176,20 +176,20 @@ def to_AST(self) -> AST:
         if (
             self.nodes[0] == Terminal("INL")
             # TODO: Type Check
-            and self.nodes[2] == Terminal("O_PAREN")
+            and self.nodes[2] == Terminal("LPAREN")
             and isinstance(self.nodes[3], EXPR)
-            and self.nodes[4] == Terminal("C_PAREN")
+            and self.nodes[4] == Terminal("RPAREN")
         ):
             return AST(AST.Kind.Inl, [self.nodes[3].to_AST()])
 
         if (
             self.nodes[0] == Terminal("INR")
             # TODO: Type Check
-            and self.nodes[2] == Terminal("O_PAREN")
+            and self.nodes[2] == Terminal("LPAREN")
             and isinstance(self.nodes[3], EXPR)
-            and self.nodes[4] == Terminal("C_PAREN")
+            and self.nodes[4] == Terminal("RPAREN")
         ):
-            return AST(AST.Kind.Inl, [self.nodes[3].to_AST()])
+            return AST(AST.Kind.Inr, [self.nodes[3].to_AST()])
 
     if len(self.nodes) == 7:
         if (
@@ -213,17 +213,17 @@ def to_AST(self) -> AST:
     if len(self.nodes) == 10:
         if (
             self.nodes[0] == Terminal("FUN")
-            and self.nodes[1] == Terminal("O_PAREN")
+            and self.nodes[1] == Terminal("LPAREN")
             and self.nodes[2] == Terminal("IDENT")
             and isinstance(self.nodes[2], Terminal)
             and self.nodes[2].value is not None
             and self.nodes[3] == Terminal("COLON")
             # TODO: Type Check
-            and self.nodes[5] == Terminal("C_PAREN")
+            and self.nodes[5] == Terminal("RPAREN")
             and self.nodes[6] == Terminal("ARROW")
-            and self.nodes[7] == Terminal("O_PAREN")
+            and self.nodes[7] == Terminal("LPAREN")
             and isinstance(self.nodes[8], EXPR)
-            and self.nodes[9] == Terminal("C_PAREN")
+            and self.nodes[9] == Terminal("RPAREN")
         ):
             return AST(
                 AST.Kind.Lambda,
@@ -243,9 +243,9 @@ def to_AST(self) -> AST:
             and self.nodes[4] == Terminal("EQUAL")
             and isinstance(self.nodes[5], EXPR)
             and self.nodes[6] == Terminal("IN")
-            and self.nodes[7] == Terminal("O_PAREN")
+            and self.nodes[7] == Terminal("LPAREN")
             and isinstance(self.nodes[8], EXPR)
-            and self.nodes[9] == Terminal("C_PAREN")
+            and self.nodes[9] == Terminal("RPAREN")
         ):
             # Need to transform the let into a lambda + application
             # As in Lecture 7, slide 11
@@ -269,21 +269,21 @@ def to_AST(self) -> AST:
             and self.nodes[1] == Terminal("IDENT")
             and isinstance(self.nodes[1], Terminal)
             and self.nodes[1].value is not None
-            and self.nodes[2] == Terminal("O_PAREN")
+            and self.nodes[2] == Terminal("LPAREN")
             and self.nodes[3] == Terminal("IDENT")
             and isinstance(self.nodes[3], Terminal)
             and self.nodes[3].value is not None
             and self.nodes[4] == Terminal("COLON")
             # TODO: Type Check
-            and self.nodes[6] == Terminal("C_PAREN")
+            and self.nodes[6] == Terminal("RPAREN")
             and self.nodes[7] == Terminal("COLON")
             # TODO: Type Check
             and self.nodes[9] == Terminal("EQUAL")
             and isinstance(self.nodes[10], EXPR)
             and self.nodes[11] == Terminal("IN")
-            and self.nodes[12] == Terminal("O_PAREN")
+            and self.nodes[12] == Terminal("LPAREN")
             and isinstance(self.nodes[13], EXPR)
-            and self.nodes[14] == Terminal("C_PAREN")
+            and self.nodes[14] == Terminal("RPAREN")
         ):
             return AST(
                 AST.Kind.LetFun,
@@ -301,30 +301,30 @@ def to_AST(self) -> AST:
             and isinstance(self.nodes[1], EXPR)
             and self.nodes[2] == Terminal("OF")
             and self.nodes[3] == Terminal("INL")
-            and self.nodes[4] == Terminal("O_PAREN")
+            and self.nodes[4] == Terminal("LPAREN")
             and self.nodes[5] == Terminal("IDENT")
             and isinstance(self.nodes[5], Terminal)
             and self.nodes[5].value is not None
             and self.nodes[6] == Terminal("COLON")
             # TODO: Type Check
-            and self.nodes[8] == Terminal("C_PAREN")
+            and self.nodes[8] == Terminal("RPAREN")
             and self.nodes[9] == Terminal("ARROW")
             and isinstance(self.nodes[10], EXPR)
             and self.nodes[11] == Terminal("BAR")
             and self.nodes[12] == Terminal("INR")
-            and self.nodes[13] == Terminal("O_PAREN")
+            and self.nodes[13] == Terminal("LPAREN")
             and self.nodes[14] == Terminal("IDENT")
             and isinstance(self.nodes[14], Terminal)
             and self.nodes[14].value is not None
             and self.nodes[15] == Terminal("COLON")
             # TODO: Type Check
-            and self.nodes[17] == Terminal("C_PAREN")
+            and self.nodes[17] == Terminal("RPAREN")
             and self.nodes[18] == Terminal("ARROW")
             and isinstance(self.nodes[19], EXPR)
             and self.nodes[20] == Terminal("SEMICOLON")
         ):
             return AST(
-                AST.Kind.LetFun,
+                AST.Kind.Case,
                 [
                     self.nodes[1].to_AST(),
                     Variable(self.nodes[5].value),
@@ -334,7 +334,7 @@ def to_AST(self) -> AST:
                 ],
             )
 
-    assert False, "Invalid EXPR"
+    assert False, ("Invalid EXPR", len(self.nodes), self.nodes)
 Class End EXPR
 Class Start EXPR1
 def to_AST(self) -> AST:
@@ -353,7 +353,7 @@ def to_AST(self) -> AST:
             return AST(
                 AST.Kind.App, [self.nodes[0].to_AST(), self.nodes[1].to_AST()]
             )
-    assert False, "Invalid EXPR1"
+    assert False, ("Invalid EXPR1", len(self.nodes), self.nodes)
 Class End EXPR1
 Class Start SUM
 def to_AST(self) -> AST:
@@ -369,11 +369,11 @@ def to_AST(self) -> AST:
         elif self.nodes[1] == Terminal("ADD"):
             op = Operator.Add
         else:
-            assert False, "Invalid SUM"
+            assert False, ("Invalid SUM", len(self.nodes), self.nodes)
         return AST(
             AST.Kind.BinaryOp, [self.nodes[0].to_AST(), op, self.nodes[2].to_AST()]
         )
-    assert False, "Invalid SUM"
+    assert False, ("Invalid SUM", len(self.nodes), self.nodes)
 Class End SUM
 Class Start INTERMEDIATE_BINARY_OP
 def to_AST(self) -> AST:
@@ -388,7 +388,7 @@ def to_AST(self) -> AST:
             op = Operator.Mul
         elif self.nodes[1] == Terminal("DIV"):
             op = Operator.Div
-        elif self.nodes[1] == Terminal("LESS_THAN"):
+        elif self.nodes[1] == Terminal("LT"):
             op = Operator.LessThan
         elif self.nodes[1] == Terminal("EQUAL"):
             op = Operator.Eq
@@ -397,11 +397,15 @@ def to_AST(self) -> AST:
         elif self.nodes[1] == Terminal("OROP"):
             op = Operator.Or
         else:
-            assert False, "Invalid INTERMEDIATE_BINARY_OP"
+            assert False, (
+                "Invalid INTERMEDIATE_BINARY_OP",
+                len(self.nodes),
+                self.nodes,
+            )
         return AST(
             AST.Kind.BinaryOp, [self.nodes[0].to_AST(), op, self.nodes[2].to_AST()]
         )
-    assert False, "Invalid INTERMEDIATE_BINARY_OP"
+    assert False, ("Invalid INTERMEDIATE_BINARY_OP", len(self.nodes), self.nodes)
 Class End INTERMEDIATE_BINARY_OP
 Class Start ASSIGNMENT
 def to_AST(self) -> AST:
@@ -411,14 +415,14 @@ def to_AST(self) -> AST:
         if (
             isinstance(self.nodes[0], ASSIGNMENT)
             and self.nodes[1] == Terminal("ASSIGN")
-            and self.nodes[2] == Terminal("O_PAREN")
+            and self.nodes[2] == Terminal("LPAREN")
             and isinstance(self.nodes[3], EXPR)
-            and self.nodes[4] == Terminal("C_PAREN")
+            and self.nodes[4] == Terminal("RPAREN")
         ):
             return AST(
                 AST.Kind.Assign, [self.nodes[0].to_AST(), self.nodes[3].to_AST()]
             )
-    assert False, "Invalid ASSIGNMENT"
+    assert False, ("Invalid ASSIGNMENT", len(self.nodes), self.nodes)
 Class End ASSIGNMENT
 Class Start SIMPLE_EXPR
 def to_AST(self) -> AST:
@@ -450,17 +454,17 @@ def to_AST(self) -> AST:
 
     if len(self.nodes) == 3:
         if (
-            self.nodes[0] == Terminal("O_PAREN")
+            self.nodes[0] == Terminal("LPAREN")
             and isinstance(self.nodes[1], EXPR)
-            and self.nodes[2] == Terminal("C_PAREN")
+            and self.nodes[2] == Terminal("RPAREN")
         ):
             return self.nodes[1].to_AST()
     if len(self.nodes) == 4:
         if (
             self.nodes[0] == Terminal("NOT")
-            and self.nodes[1] == Terminal("O_PAREN")
+            and self.nodes[1] == Terminal("LPAREN")
             and isinstance(self.nodes[2], EXPR)
-            and self.nodes[3] == Terminal("C_PAREN")
+            and self.nodes[3] == Terminal("RPAREN")
         ):
             return AST(
                 AST.Kind.UnaryOp, [Operator.UnaryNot, self.nodes[2].to_AST()]
@@ -468,33 +472,51 @@ def to_AST(self) -> AST:
 
         if (
             self.nodes[0] == Terminal("BANG")
-            and self.nodes[1] == Terminal("O_PAREN")
+            and self.nodes[1] == Terminal("LPAREN")
             and isinstance(self.nodes[2], EXPR)
-            and self.nodes[3] == Terminal("C_PAREN")
+            and self.nodes[3] == Terminal("RPAREN")
         ):
             return AST(AST.Kind.Deref, [self.nodes[2].to_AST()])
 
         if (
             self.nodes[0] == Terminal("REF")
-            and self.nodes[1] == Terminal("O_PAREN")
+            and self.nodes[1] == Terminal("LPAREN")
             and isinstance(self.nodes[2], EXPR)
-            and self.nodes[3] == Terminal("C_PAREN")
+            and self.nodes[3] == Terminal("RPAREN")
         ):
             return AST(AST.Kind.Ref, [self.nodes[2].to_AST()])
 
     if len(self.nodes) == 5:
         if (
-            self.nodes[0] == Terminal("O_PAREN")
+            self.nodes[0] == Terminal("LPAREN")
             and isinstance(self.nodes[1], EXPR)
             and self.nodes[2] == Terminal("COMMA")
             and isinstance(self.nodes[3], EXPR)
-            and self.nodes[4] == Terminal("C_PAREN")
+            and self.nodes[4] == Terminal("RPAREN")
         ):
             return AST(
                 AST.Kind.Pair, [self.nodes[1].to_AST(), self.nodes[3].to_AST()]
             )
 
-    assert False, "Invalid SIMPLE_EXPR"
+    assert False, ("Invalid SIMPLE_EXPR", len(self.nodes), self.nodes)
 Class End SIMPLE_EXPR
+
+Class Start EXPR_LIST
+def to_AST(self) -> AST:
+    if len(self.nodes) == 1 and isinstance(self.nodes[0], EXPR):
+        return AST(AST.Kind.Seq, [self.nodes[0].to_AST()])
+    if (
+        len(self.nodes) == 3
+        and isinstance(self.nodes[0], EXPR)
+        and isinstance(self.nodes[1], Terminal)
+        and self.nodes[1] == Terminal("SEMICOLON")
+        and isinstance(self.nodes[2], EXPR_LIST)
+    ):
+        x = self.nodes[0].to_AST()
+        xs = self.nodes[2].to_AST()
+        return AST(AST.Kind.Seq, [x] + xs.sequence)
+    assert False, ("Invalid EXPR_LIST", len(self.nodes), self.nodes)
+Class End EXPR_LIST
+
 Method End to_AST(self) -> AST
 Class Methods End

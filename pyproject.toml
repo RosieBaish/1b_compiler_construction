@@ -24,7 +24,7 @@ exclude = "^tests/"
 
 
 [tool.pytest.ini_options]
-addopts = "--cov=. --cov-report=term-missing"
+addopts = "--cov=. --cov-report=term-missing --no-cov-on-fail"
 
 [tool.coverage.run]
 omit = ["tests/*", "tests_generated_code/*", "main.py"]
@@ -43,4 +43,10 @@ exclude_also = [
 	     "def main",
 	     "if __name__ == '__main__':",
 	     'if __name__ == "__main__":',
+
+	     # Unreachable and Unimplemented Code
+	     "assert False,",
+	     "raise NotImplementedError",
+
 	     ]
+skip_covered = true
