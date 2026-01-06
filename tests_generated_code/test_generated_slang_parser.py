@@ -10,6 +10,8 @@ from generated_slang_parser import (
     SIMPLE_EXPR,
 )
 
+from slang_ast import AST
+
 from common import Terminal, dollar
 
 import pytest
@@ -61,3 +63,9 @@ def test_lexer():
     assert len(expected) == len(actual)
     for e, a in zip(expected, actual):
         assert e.identical_to(a)
+
+
+def test_to_ast_id():
+    generated_ast = parse([x, dollar]).to_AST()
+    assert generated_ast.kind == AST.Kind.Var
+    assert generated_ast.variable.name == "x"
