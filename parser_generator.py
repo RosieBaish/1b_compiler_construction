@@ -177,8 +177,8 @@ class {n}(GeneratedAST):
                         ]
                         generated += "\n".join(lines) + "\n"
                     else:
-                        generated += f"    def {name}:  # pragma: no cover\n"
-                        generated += '        assert False, "Not Implemented"\n'
+                        generated += f"    def {name}:\n"
+                        generated += "        raise NotImplementedError\n"
                         generated += "\n"
             generated += "\n"
         return generated

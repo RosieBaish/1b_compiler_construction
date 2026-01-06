@@ -1,0 +1,4 @@
+
+# Stuff that it doesn't make sense to test until after we've generated the parser(s)
+[tool.coverage.run]
+omit = ["generated_*_parser.py", "slang_ast.py"]

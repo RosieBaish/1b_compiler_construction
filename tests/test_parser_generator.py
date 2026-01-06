@@ -5,8 +5,11 @@ from grammar_reader import Grammar
 # These are used in the eval but ruff doesn't know that
 from common import NonTerminal, Terminal, Production, LR0_Accept, LR0_Shift, LR0_Reduce  # noqa: F401
 
+# Ditto, used in exec
+import abc  # noqa: F401
 
 import ast
+import pytest
 
 ##############################################################################################################
 # WARNING
@@ -152,6 +155,48 @@ def test_generated_ast_classes():
 
     assert len(namespace.keys()) == 1 + len(expected_classes) + 1, (
         "+1 for base class, +1 for builtins"
+    )
+
+
+def test_generated_ast_classes_with_methods():
+    g = Grammar.from_file("g2.grammar", add_starting_production=True)
+    g.optional_data = {
+        "Class Methods": {
+            "foo(self) -> str": {
+                "E": "def foo(self) -> str:\n    return 'E'\n",
+                "T": "def foo(self) -> str:\n    return 'T'\n",
+            },
+        }
+    }
+    pg = ParserGenerator(g, "", [], [])
+
+    python_source = pg.generate_ast_classes()
+
+    print(python_source)
+
+    expected_base_class = "GeneratedAST"
+    expected_classes = ["S", "E", "T", "F"]
+    expected_classes_with_methods = ["E", "T"]
+
+    namespace = {"abc": abc}
+    exec(python_source, namespace)
+
+    assert expected_base_class in namespace
+    for c in expected_classes:
+        assert c in namespace
+        assert issubclass(namespace[c], namespace[expected_base_class])
+
+        assert hasattr(namespace[c], "foo")
+        if c in expected_classes_with_methods:
+            temp = namespace[c]([])
+            assert temp.foo() == c
+        else:
+            with pytest.raises(NotImplementedError):
+                temp = namespace[c]([])
+                temp.foo()
+
+    assert len(namespace.keys()) == 1 + len(expected_classes) + 2, (
+        "+1 for base class, +1 for builtins and abc"
     )
 
 

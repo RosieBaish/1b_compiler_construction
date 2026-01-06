@@ -10,7 +10,7 @@ uv run mypy *.py
 uv run ruff check
 uv run ruff format
 
-uv run pytest --cov=. tests/
+uv run pytest --cov --config-file=pyproject.toml --config-file=pyproject_omit_generated.toml tests/
 
 uv run main.py --parser-generator
 
