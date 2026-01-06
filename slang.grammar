@@ -122,3 +122,7 @@ TYPE1 -> ( TYPE )
 Productions End
 
 Start Symbol: EXPR
+
+Prefix Start
+from slang_ast import AST, Variable, Operator
+Prefix End

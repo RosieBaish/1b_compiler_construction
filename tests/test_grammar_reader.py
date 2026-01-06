@@ -362,3 +362,128 @@ def test_cfg():
     assert g.name == "Basic 1"
     assert isinstance(g.cfg, CFG)
     assert g.cfg == CFG({A}, {a}, {A: [[a]]}, A)
+
+
+def test_parse_raw_section():
+    source = """
+Test source \n
+    More random stuff \t
+"""
+
+    lines = ["Start\n"] + source.split("\n") + ["End\n", "trailing stuff\n"]
+
+    assert Grammar.parse_raw_section(lines, "Start", "End") == (
+        source,
+        len(lines) - 1,
+    )
+
+
+def test_parse_raw_section_empty():
+    lines = ["A\n", "B\n", "trailing stuff\n"]
+
+    assert Grammar.parse_raw_section(lines, "A", "B") == ("", 2)
+
+
+def test_parse_class_methods_empty():
+    lines = ["Class Methods Start\n", "Class Methods End\n"]
+
+    assert Grammar.parse_class_methods(lines) == ({}, 2)
+
+
+def test_parse_class_methods_blank():
+    lines = ["Class Methods Start\n", "\n", "Class Methods End\n"]
+
+    assert Grammar.parse_class_methods(lines) == ({}, 3)
+
+
+def test_parse_class_methods_single_method_and_class():
+    source = """
+Class Methods Start
+Method Start foo
+Class Start bar
+[code goes here]
+Class End bar
+Method End foo
+Class Methods End
+Trailing Stuff""".lstrip()
+
+    lines = source.split("\n")
+
+    print(lines)
+
+    assert Grammar.parse_class_methods(lines) == (
+        {"foo": {"bar": "[code goes here]\n"}},
+        len(lines) - 1,
+    )
+
+
+def test_parse_class_methods_multiple_method_and_class():
+    source = """
+Class Methods Start
+Method Start foo
+Class Start bar
+[code goes here]
+Class End bar
+Class Start baz
+Class End baz
+Method End foo
+Method Start foo2
+Method End foo2
+Class Methods End
+Trailing Stuff""".lstrip()
+
+    lines = source.split("\n")
+
+    print(lines)
+
+    assert Grammar.parse_class_methods(lines) == (
+        {"foo": {"bar": "[code goes here]\n", "baz": ""}, "foo2": {}},
+        len(lines) - 1,
+    )
+
+
+def test_parse_optional_data_prefix():
+    source = """
+Prefix Start
+"This is a prefix"
+Prefix End
+
+
+"""
+    lines = source.split("\n")
+
+    assert Grammar.parse_optional_data(lines) == {"Prefix": '"This is a prefix"\n'}
+
+
+def test_parse_optional_data_class_methods():
+    source = """
+
+
+Class Methods Start
+Method Start foo
+Class Start bar
+[code goes here]
+Class End bar
+Class Start baz
+Class End baz
+Method End foo
+Method Start foo2
+Method End foo2
+Class Methods End
+"""
+
+    lines = source.split("\n")
+
+    print(lines)
+
+    assert Grammar.parse_optional_data(lines) == {
+        "Class Methods": {"foo": {"bar": "[code goes here]\n", "baz": ""}, "foo2": {}},
+    }
+
+
+def test_grammars_have_optional_data():
+    slang = Grammar.from_file("slang.grammar")
+    g2 = Grammar.from_file("g2.grammar")
+
+    assert slang.optional_data != {}
+    assert g2.optional_data == {}

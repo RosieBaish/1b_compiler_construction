@@ -154,16 +154,33 @@ class GeneratedAST:
     def __repr__(self) -> str:
         return str(self)
 
-
 """
+        if "Class Methods" in self.g.optional_data:
+            for name, _ in self.g.optional_data["Class Methods"].items():
+                generated += "    @abc.abstractmethod\n"
+                generated += f"    def {name}:\n"
+                generated += '''        """Abstract base method"""\n\n'''
+        generated += "\n"
 
         for n in self.g.nonterminals:
             generated += f"""
 class {n}(GeneratedAST):
     pass
 
-
 """.lstrip()
+            if "Class Methods" in self.g.optional_data:
+                for name, method_dict in self.g.optional_data["Class Methods"].items():
+                    if n.name in method_dict:
+                        lines = method_dict[n.name].split("\n")
+                        lines = [
+                            ("    " + line if line != "" else "") for line in lines
+                        ]
+                        generated += "\n".join(lines) + "\n"
+                    else:
+                        generated += f"    def {name}:  # pragma: no cover\n"
+                        generated += '        assert False, "Not Implemented"\n'
+                        generated += "\n"
+            generated += "\n"
         return generated
 
     def generate_semantic_actions(self) -> str:
@@ -182,15 +199,24 @@ class {n}(GeneratedAST):
             ("common", "Production"),
             (None, "argparse"),
         ]
+
+        if "Class Methods" in self.g.optional_data:
+            imports.append((None, "abc"))
+
         with open(self.filename, "w+", encoding="utf-8") as f:
+            if "Prefix" in self.g.optional_data:
+                f.write(self.g.optional_data["Prefix"] + "\n\n")
+
             for from_name, import_name in imports:
                 if from_name is None:
                     f.write(f"import {import_name}\n")
                 else:
                     f.write(f"from {from_name} import {import_name}\n")
+
             with open("parser_stub.py", "r", encoding="utf-8") as parser_stub:
                 f.write(parser_stub.read())
             f.write("\n\n")
+
             f.write(self.terminals_to_string())
             f.write(self.nonterminals_to_string())
             f.write(self.productions_to_string())
